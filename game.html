@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=400, initial-scale=1.0, user-scalable=no">
+    <title>Tozu Dumana Kat Rauf - Oyun</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/svg+xml" href="assets/rauf-favicon.svg">
+    <style>
+    body {
+        background: linear-gradient(to top, #e0eafc, #cfdef3);
+        font-family: 'Segoe UI', Arial, sans-serif;
+        margin: 0;
+        min-height: 100vh;
+    }
+    #game-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        min-height: 100vh;
+        padding-top: 2vh;
+    }
+    #level-bar {
+        font-size: 1.5rem;
+        color: #1976d2;
+        margin-bottom: 1em;
+        font-weight: bold;
+        letter-spacing: 1px;
+        text-shadow: 1px 2px 8px #b3c6e0;
+    }
+    #game-canvas {
+        background: #e3e0d3;
+        border: 6px solid #1976d2;
+        border-radius: 18px;
+        box-shadow: 0 4px 32px #b3c6e0;
+        margin-bottom: 1em;
+        display: block;
+    }
+    #score {
+        font-size: 1.2rem;
+        color: #1976d2;
+        font-weight: bold;
+        margin-bottom: 0.5em;
+        text-align: center;
+    }
+    #message {
+        font-size: 1.1rem;
+        color: #333;
+        text-align: center;
+        margin-bottom: 1em;
+    }
+    </style>
+</head>
+<body>
+    <div id="game-wrapper">
+        <div id="level-bar"></div>
+        <canvas id="game-canvas" width="400" height="800"></canvas>
+        <div id="mobile-controls">
+            <div class="mobile-row">
+                <div class="mobile-col" id="mobile-arrows">
+                    <button class="ctrl-btn" id="btn-up">▲</button>
+                    <div>
+                        <button class="ctrl-btn" id="btn-left">◀</button>
+                        <button class="ctrl-btn" id="btn-down">▼</button>
+                        <button class="ctrl-btn" id="btn-right">▶</button>
+                    </div>
+                </div>
+                <div class="mobile-col" id="mobile-break">
+                    <button class="ctrl-btn" id="btn-break">Kır</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="score">Puan: 0</div>
+    <div id="message"></div>
+    <script src="js/app.js"></script>
+</body>
+</html>
