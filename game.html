@@ -20,6 +20,7 @@
         justify-content: flex-start;
         min-height: 100vh;
         padding-top: 2vh;
+        position: relative;
     }
     #level-bar {
         font-size: 1.5rem;
@@ -49,6 +50,33 @@
         color: #333;
         text-align: center;
         margin-bottom: 1em;
+    }
+    #mobile-controls {
+        width: 100vw;
+        max-width: 400px;
+        position: fixed;
+        left: 50%;
+        bottom: 0;
+        transform: translateX(-50%);
+        background: rgba(255,255,255,0.85);
+        box-shadow: 0 -2px 16px #b3c6e0;
+        padding: 0.5em 0 0.7em 0;
+        z-index: 10;
+        border-top-left-radius: 18px;
+        border-top-right-radius: 18px;
+        display: flex;
+        justify-content: center;
+    }
+    @media (min-width: 600px) {
+        #mobile-controls {
+            position: static;
+            background: none;
+            box-shadow: none;
+            border-radius: 0;
+            padding: 0;
+            width: auto;
+            max-width: none;
+        }
     }
     </style>
 </head>
