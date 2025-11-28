@@ -1,4 +1,4 @@
-// Tozu Dumana Kat Rauf - Düşman Yavaş ve Tamirci Görünümlü
+// Tozu Dumana Kat Rauf - Modern Gaming Edition
 
 document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('game-canvas');
@@ -10,6 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const gridWidth = 5;
     const gridHeight = 10;
     const cellWidth = 80;
+    const MAX_LEVEL = 20; // Increased from 5 to 20 levels
+    
+    // Gamer-friendly constants
+    const COMBO_TIME_WINDOW = 1500; // Time window to keep combo (ms)
+    const COMBO_TIMEOUT = 2000; // Time before combo resets (ms)
+    const ENEMIES_PER_LEVEL_DIVISOR = 3; // Divisor for calculating enemy count
+    const MAX_ENEMIES = 6; // Maximum number of enemies
+    
     // cellHeight artık dinamik:
     let cellHeight = 80;
     let rauf = { x: 2, y: 0, breaking: false, breakAnim: 0 };
@@ -20,6 +28,72 @@ document.addEventListener('DOMContentLoaded', () => {
     let enemies = [];
     let enemyCooldowns = [];
     let strongRate = 0.25;
+    
+    // Gamer-friendly features
+    let combo = 0;
+    let maxCombo = 0;
+    let comboTimer = null;
+    let totalWindowsBroken = 0;
+    let lastBreakTime = 0;
+    
+    // Create combo display element
+    function createComboDisplay() {
+        if (!document.getElementById('combo-display')) {
+            const comboDiv = document.createElement('div');
+            comboDiv.id = 'combo-display';
+            document.body.appendChild(comboDiv);
+        }
+    }
+    
+    // Create progress bar
+    function createProgressBar() {
+        const gameWrapper = document.getElementById('game-wrapper');
+        if (gameWrapper && !document.getElementById('progress-container')) {
+            const container = document.createElement('div');
+            container.id = 'progress-container';
+            const bar = document.createElement('div');
+            bar.id = 'progress-bar';
+            container.appendChild(bar);
+            const levelBar = document.getElementById('level-bar');
+            if (levelBar) {
+                levelBar.parentNode.insertBefore(container, levelBar.nextSibling);
+            }
+        }
+    }
+    
+    // Update progress bar
+    function updateProgress() {
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) {
+            const brokenCount = windows.filter(w => w.broken).length;
+            const totalCount = windows.length;
+            const progress = (brokenCount / totalCount) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+    }
+    
+    // Show combo
+    function showCombo(comboCount) {
+        const comboDisplay = document.getElementById('combo-display');
+        if (comboDisplay && comboCount >= 2) {
+            comboDisplay.textContent = `${comboCount}x COMBO!`;
+            comboDisplay.classList.add('active');
+            setTimeout(() => {
+                comboDisplay.classList.remove('active');
+            }, 800);
+        }
+    }
+    
+    // Screen shake effect
+    function screenShake() {
+        const gameWrapper = document.getElementById('game-wrapper');
+        if (gameWrapper) {
+            gameWrapper.classList.add('shake');
+            setTimeout(() => {
+                gameWrapper.classList.remove('shake');
+            }, 300);
+        }
+    }
 
     // Camları oluştur (bazıları güçlü cam)
     function createWindows() {
@@ -32,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Rauf'u çiz (piksel-art tarzı)
+    // Rauf'u çiz (modern piksel-art tarzı)
     function drawRauf() {
         // Rauf'u bulunduğu camın tam ortasına yerleştir
         const px = rauf.x * cellWidth + cellWidth / 2;
@@ -40,130 +114,255 @@ document.addEventListener('DOMContentLoaded', () => {
         ctx.save();
         ctx.translate(px, py);
         if (rauf.breaking && rauf.breakAnim > 0) {
-            ctx.rotate(Math.sin(rauf.breakAnim/2) * 0.2);
+            ctx.rotate(Math.sin(rauf.breakAnim/2) * 0.3);
         }
         // Rauf'un boyutunu cellHeight'e göre orantılı yap
         const scale = cellHeight / 60;
         ctx.scale(scale, scale);
-        // Gövde
-        ctx.fillStyle = '#e74c3c';
+        
+        // Glow effect
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 15;
+        
+        // Gövde (modern neon red)
+        ctx.fillStyle = '#ff3366';
         ctx.fillRect(-18, 0, 36, 28);
+        
+        // Armor details
+        ctx.fillStyle = '#cc0044';
+        ctx.fillRect(-16, 2, 8, 24);
+        ctx.fillRect(8, 2, 8, 24);
+        
         // Kafa
-        ctx.fillStyle = '#f1c40f';
+        ctx.fillStyle = '#ffcc00';
+        ctx.shadowColor = '#ffcc00';
         ctx.beginPath();
         ctx.ellipse(0, -16, 18, 16, 0, 0, Math.PI*2);
         ctx.fill();
-        // Gözler
-        ctx.fillStyle = '#222';
-        ctx.fillRect(-7, -20, 4, 4);
-        ctx.fillRect(3, -20, 4, 4);
-        // Kol (kırma animasyonu)
+        
+        // Visor/Gözler (cyberpunk style)
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#00ffff';
+        ctx.fillStyle = '#00ffff';
+        ctx.fillRect(-12, -22, 24, 6);
+        
+        // Eye dots
+        ctx.fillStyle = '#000';
+        ctx.fillRect(-7, -20, 4, 3);
+        ctx.fillRect(3, -20, 4, 3);
+        
+        // Kol (kırma animasyonu with glow)
         ctx.save();
         ctx.rotate(rauf.breaking ? -0.7 : -0.2);
-        ctx.fillStyle = '#f1c40f';
+        ctx.shadowColor = '#ffcc00';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = '#ffcc00';
         ctx.fillRect(16, 0, 10, 22);
+        // Hammer/tool
+        if (rauf.breaking) {
+            ctx.fillStyle = '#888';
+            ctx.fillRect(18, 22, 6, 12);
+            ctx.fillStyle = '#ff3366';
+            ctx.fillRect(14, 32, 14, 8);
+        }
         ctx.restore();
         ctx.restore();
     }
 
-    // Tamirci düşmanları çiz
+    // Tamirci düşmanları çiz (modern style)
     function drawEnemies() {
         enemies.forEach(enemy => {
             const px = enemy.x * cellWidth + cellWidth/2;
             const py = canvas.height - (enemy.y * cellHeight + cellHeight/2);
             ctx.save();
             ctx.translate(px, py);
-            // Gövde (mavi tulum)
-            ctx.fillStyle = '#1976d2';
+            
+            // Glow effect
+            ctx.shadowColor = '#0088ff';
+            ctx.shadowBlur = 12;
+            
+            // Gövde (blue tech suit)
+            ctx.fillStyle = '#0066cc';
             ctx.fillRect(-16, 0, 32, 28);
+            
+            // Tech details
+            ctx.fillStyle = '#00aaff';
+            ctx.fillRect(-14, 4, 4, 20);
+            ctx.fillRect(10, 4, 4, 20);
+            
             // Kafa (açık ten)
-            ctx.fillStyle = '#ffe0b2';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = '#ffd5b5';
             ctx.beginPath();
             ctx.ellipse(0, -14, 14, 14, 0, 0, Math.PI*2);
             ctx.fill();
-            // Şapka
-            ctx.fillStyle = '#1565c0';
-            ctx.fillRect(-14, -22, 28, 8);
-            ctx.beginPath();
-            ctx.arc(0, -14, 14, Math.PI, 2*Math.PI);
-            ctx.fill();
+            
+            // Tech visor/helmet
+            ctx.shadowColor = '#00ffff';
+            ctx.fillStyle = '#003366';
+            ctx.fillRect(-14, -24, 28, 10);
+            ctx.fillStyle = '#00ffff';
+            ctx.fillRect(-10, -22, 20, 4);
+            
             // Gözler
             ctx.fillStyle = '#222';
             ctx.fillRect(-6, -18, 4, 4);
             ctx.fillRect(2, -18, 4, 4);
-            // Anahtar (elinde)
+            
+            // Tech tool (wrench)
             ctx.save();
-            ctx.rotate(-0.5);
-            ctx.fillStyle = '#ffd600';
-            ctx.fillRect(16, 10, 12, 4);
+            ctx.rotate(-0.4);
+            ctx.shadowColor = '#ffff00';
+            ctx.fillStyle = '#ffcc00';
+            ctx.fillRect(16, 8, 14, 4);
             ctx.beginPath();
-            ctx.arc(28, 12, 4, 0, Math.PI*2);
+            ctx.arc(30, 10, 5, 0, Math.PI*2);
             ctx.fill();
             ctx.restore();
             ctx.restore();
         });
     }
 
-    // Her seviye için bina rengi ve cam çerçevesi değişsin
+    // Her seviye için bina rengi ve cam çerçevesi (expanded to 20 levels)
     function getBuildingColors(level) {
         const colors = [
-            { body: '#b0bec5', border: '#455a64', window: '#b2ebf2', strong: '#4fc3f7' },
-            { body: '#ffe082', border: '#ffb300', window: '#fff9c4', strong: '#ffd54f' },
-            { body: '#c5e1a5', border: '#388e3c', window: '#e8f5e9', strong: '#81c784' },
-            { body: '#b39ddb', border: '#512da8', window: '#ede7f6', strong: '#9575cd' },
-            { body: '#ffab91', border: '#d84315', window: '#fbe9e7', strong: '#ff7043' }
+            { body: '#1a1a2e', border: '#00f5ff', window: '#0a3d62', strong: '#00a8cc', name: 'Neon Tower' },
+            { body: '#2d132c', border: '#ff00ff', window: '#4a0e4e', strong: '#c850c0', name: 'Cyber Plaza' },
+            { body: '#0c1618', border: '#39ff14', window: '#1e3a1e', strong: '#32cd32', name: 'Matrix Hub' },
+            { body: '#1a1a1a', border: '#ff3131', window: '#3d0000', strong: '#ff6b6b', name: 'Red District' },
+            { body: '#0d1b2a', border: '#ffd700', window: '#2d3436', strong: '#f1c40f', name: 'Golden Gate' },
+            { body: '#16213e', border: '#e94560', window: '#1f4068', strong: '#f05454', name: 'Sunset Tower' },
+            { body: '#1b1b2f', border: '#7b2cbf', window: '#2a2a4a', strong: '#9d4edd', name: 'Purple Haze' },
+            { body: '#0f0f23', border: '#00d4ff', window: '#1a1a3e', strong: '#0099cc', name: 'Ice Palace' },
+            { body: '#1f1f1f', border: '#ff6b35', window: '#2d2d2d', strong: '#f77f00', name: 'Fire Core' },
+            { body: '#0a0a0a', border: '#b8b8b8', window: '#1a1a1a', strong: '#e0e0e0', name: 'Chrome City' },
+            { body: '#1a0a2e', border: '#ff1493', window: '#2e1a4a', strong: '#ff69b4', name: 'Pink Dream' },
+            { body: '#0a1a0a', border: '#00ff7f', window: '#1a2e1a', strong: '#00fa9a', name: 'Emerald Tower' },
+            { body: '#1a1a0a', border: '#ffff00', window: '#2e2e1a', strong: '#ffd700', name: 'Solar Spire' },
+            { body: '#0a0a1a', border: '#4169e1', window: '#1a1a2e', strong: '#6495ed', name: 'Royal Blue' },
+            { body: '#1a0a0a', border: '#dc143c', window: '#2e1a1a', strong: '#ff4500', name: 'Crimson Peak' },
+            { body: '#0f1923', border: '#00bcd4', window: '#1a2e3d', strong: '#00e5ff', name: 'Aqua Nexus' },
+            { body: '#1e0533', border: '#e040fb', window: '#2e1a4a', strong: '#ea80fc', name: 'Violet Storm' },
+            { body: '#0a1f0a', border: '#76ff03', window: '#1a3d1a', strong: '#b2ff59', name: 'Lime Zone' },
+            { body: '#1f0a1f', border: '#ff1744', window: '#3d1a3d', strong: '#ff5252', name: 'Ruby Complex' },
+            { body: '#000000', border: '#ffffff', window: '#111111', strong: '#cccccc', name: 'Final Boss' }
         ];
-        return colors[(level-1)%colors.length];
+        return colors[(level-1) % colors.length];
     }
 
     // Bina görselini ve seviye temasını güçlendirmek için drawWindows fonksiyonunu güncelle
     function drawWindows() {
         const theme = getBuildingColors(level);
-        // Bina gövdesi (arka plan)
+        
+        // Bina gövdesi (arka plan with grid effect)
         ctx.save();
         ctx.fillStyle = theme.body;
         ctx.strokeStyle = theme.border;
-        ctx.lineWidth = 8;
+        ctx.lineWidth = 4;
+        ctx.shadowColor = theme.border;
+        ctx.shadowBlur = 20;
         ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, 32);
+        ctx.roundRect(0, 0, canvas.width, canvas.height, 16);
         ctx.fill();
         ctx.stroke();
+        
+        // Grid overlay effect
+        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+        ctx.lineWidth = 1;
+        for (let i = 0; i < canvas.width; i += 20) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, canvas.height);
+            ctx.stroke();
+        }
+        for (let i = 0; i < canvas.height; i += 20) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(canvas.width, i);
+            ctx.stroke();
+        }
         ctx.restore();
+        
         // Camlar
         windows.forEach(w => {
             const px = w.x * cellWidth;
             const py = canvas.height - ((w.y + 1) * cellHeight);
             ctx.save();
             ctx.translate(px, py);
+            
+            // Window frame with glow
+            ctx.shadowColor = theme.border;
+            ctx.shadowBlur = w.broken ? 0 : 8;
             ctx.fillStyle = theme.border;
-            ctx.fillRect(0, 0, cellWidth, cellHeight);
+            ctx.fillRect(4, 4, cellWidth-8, cellHeight-8);
+            
             if (!w.broken) {
-                ctx.fillStyle = w.strong ? theme.strong : theme.window;
+                // Glass with gradient
+                const gradient = ctx.createLinearGradient(8, 8, cellWidth-16, cellHeight-16);
+                gradient.addColorStop(0, w.strong ? theme.strong : theme.window);
+                gradient.addColorStop(1, w.strong ? theme.border : theme.window);
+                ctx.fillStyle = gradient;
                 ctx.fillRect(8, 8, cellWidth-16, cellHeight-16);
-                ctx.strokeStyle = '#e0f7fa';
+                
+                // Shine effect
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
                 ctx.beginPath();
-                ctx.moveTo(12, 12); ctx.lineTo(cellWidth-20, 20);
-                ctx.stroke();
+                ctx.moveTo(12, 12);
+                ctx.lineTo(24, 12);
+                ctx.lineTo(12, 24);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Crack indicator for strong windows
                 if (w.strong && w.hit === 1) {
-                    ctx.strokeStyle = theme.border;
+                    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                    ctx.lineWidth = 2;
                     ctx.beginPath();
-                    ctx.moveTo(20, 20); ctx.lineTo(cellWidth-20, cellHeight-20);
+                    ctx.moveTo(cellWidth/2, 12);
+                    ctx.lineTo(cellWidth/2 - 10, cellHeight/2);
+                    ctx.lineTo(cellWidth/2 + 10, cellHeight - 12);
+                    ctx.stroke();
+                    ctx.beginPath();
+                    ctx.moveTo(cellWidth/2, cellHeight/2);
+                    ctx.lineTo(cellWidth - 12, cellHeight/2 + 10);
                     ctx.stroke();
                 }
             } else {
-                ctx.fillStyle = '#424242';
+                // Broken window (dark hole)
+                ctx.fillStyle = '#000';
                 ctx.fillRect(8, 8, cellWidth-16, cellHeight-16);
-                ctx.strokeStyle = '#e0f7fa';
+                
+                // Broken glass shards
+                ctx.strokeStyle = theme.border;
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.4;
                 ctx.beginPath();
-                ctx.moveTo(12, 12); ctx.lineTo(cellWidth-20, cellHeight-20);
-                ctx.moveTo(cellWidth-20, 12); ctx.lineTo(12, cellHeight-20);
+                ctx.moveTo(8, 8);
+                ctx.lineTo(cellWidth/2, cellHeight/2);
+                ctx.moveTo(cellWidth-8, 8);
+                ctx.lineTo(cellWidth/2, cellHeight/2);
+                ctx.moveTo(8, cellHeight-8);
+                ctx.lineTo(cellWidth/2, cellHeight/2);
+                ctx.moveTo(cellWidth-8, cellHeight-8);
+                ctx.lineTo(cellWidth/2, cellHeight/2);
                 ctx.stroke();
+                ctx.globalAlpha = 1;
+                
+                // Break animation particles
                 if (w.breakAnim > 0) {
                     ctx.globalAlpha = w.breakAnim/8;
-                    ctx.fillStyle = '#fff';
-                    ctx.beginPath();
-                    ctx.arc(cellWidth/2, cellHeight/2, 20+w.breakAnim*2, 0, Math.PI*2);
-                    ctx.fill();
+                    ctx.fillStyle = theme.border;
+                    for (let i = 0; i < 5; i++) {
+                        const angle = (Math.PI * 2 / 5) * i + w.breakAnim/4;
+                        const dist = 10 + (8 - w.breakAnim) * 5;
+                        ctx.beginPath();
+                        ctx.arc(
+                            cellWidth/2 + Math.cos(angle) * dist,
+                            cellHeight/2 + Math.sin(angle) * dist,
+                            3, 0, Math.PI*2
+                        );
+                        ctx.fill();
+                    }
                     ctx.globalAlpha = 1;
                 }
             }
@@ -179,10 +378,19 @@ document.addEventListener('DOMContentLoaded', () => {
         drawWindows();
         drawEnemies();
         drawRauf();
+        
+        // Update progress
+        updateProgress();
+        
         // Seviye göstergesini canvas yerine üstteki div'e yaz
         const levelBar = document.getElementById('level-bar');
         if (levelBar) {
-            levelBar.textContent = `Seviye: ${level}`;
+            const theme = getBuildingColors(level);
+            levelBar.innerHTML = `
+                <span>LVL ${level}/${MAX_LEVEL}</span>
+                <span style="color: ${theme.border}; font-size: 0.8rem;">${theme.name}</span>
+                ${combo >= 2 ? `<span style="color: #ff00ff;">🔥 ${combo}x</span>` : ''}
+            `;
         }
     }
 
@@ -195,6 +403,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (["ArrowUp", "w", "W"].includes(e.key) && rauf.y < gridHeight-1) { rauf.y++; moved = true; }
         if (["ArrowDown", "s", "S"].includes(e.key) && rauf.y > 0) { rauf.y--; moved = true; }
         if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
             smashWindow();
         }
         if (moved) {
@@ -203,28 +412,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Cam kırma
+    // Cam kırma with combo system
     function smashWindow() {
         if (rauf.breaking) return;
         const w = windows.find(w => w.x === rauf.x && w.y === rauf.y);
         if (w && !w.broken) {
+            const now = Date.now();
+            
+            // Combo system
+            if (now - lastBreakTime < COMBO_TIME_WINDOW) {
+                combo++;
+                if (combo > maxCombo) maxCombo = combo;
+                showCombo(combo);
+            } else {
+                combo = 1;
+            }
+            lastBreakTime = now;
+            
+            // Clear combo timer
+            if (comboTimer) clearTimeout(comboTimer);
+            comboTimer = setTimeout(() => {
+                combo = 0;
+            }, COMBO_TIMEOUT);
+            
+            // Calculate score with combo multiplier
+            let baseScore = 0;
             if (w.strong) {
                 w.hit++;
                 if (w.hit >= 2) {
                     w.broken = true;
                     w.breakAnim = 8;
-                    score += 20;
+                    baseScore = 20;
+                    screenShake();
                 } else {
-                    score += 5;
+                    baseScore = 5;
                 }
             } else {
                 w.broken = true;
                 w.breakAnim = 8;
-                score += 10;
+                baseScore = 10;
             }
+            
+            // Apply combo multiplier
+            const comboMultiplier = Math.min(combo, 5);
+            const earnedScore = baseScore * comboMultiplier;
+            score += earnedScore;
+            
+            if (w.broken) totalWindowsBroken++;
+            
             rauf.breaking = true;
             rauf.breakAnim = 8;
+            
+            // Update score display with animation
             scoreDisplay.textContent = `Puan: ${score}`;
+            if (comboMultiplier > 1) {
+                scoreDisplay.style.color = '#ff00ff';
+                setTimeout(() => {
+                    scoreDisplay.style.color = '';
+                }, 200);
+            }
+            
             checkWin();
         }
     }
@@ -262,9 +509,15 @@ document.addEventListener('DOMContentLoaded', () => {
         enemies.forEach((enemy, i) => {
             if (enemy.x === rauf.x && enemy.y === rauf.y && enemyCooldowns[i] === 0) {
                 score = Math.max(0, score - 20);
+                combo = 0; // Reset combo on hit
                 scoreDisplay.textContent = `Puan: ${score}`;
-                messageDisplay.textContent = 'Tamirciye çarptın! -20 puan';
+                messageDisplay.textContent = '⚡ Tamirciye çarptın! -20 puan | Combo sıfırlandı!';
+                messageDisplay.style.color = '#ff3131';
+                setTimeout(() => {
+                    messageDisplay.style.color = '';
+                }, 1000);
                 enemyCooldowns[i] = 30;
+                screenShake();
             }
             if (enemyCooldowns[i] > 0) enemyCooldowns[i]--;
         });
@@ -274,15 +527,39 @@ document.addEventListener('DOMContentLoaded', () => {
     function checkWin() {
         if (windows.every(w => w.broken)) {
             gameActive = false;
-            messageDisplay.textContent = `Seviye ${level} tamamlandı! Yeni seviye için bir tuşa bas.`;
+            const bonusScore = Math.floor(combo * 10);
+            score += bonusScore;
+            
+            if (level >= MAX_LEVEL) {
+                messageDisplay.innerHTML = `🏆 TEBRİKLER! Tüm seviyeleri tamamladın!<br>
+                    Toplam Puan: ${score} | Max Combo: ${maxCombo}x<br>
+                    <span style="font-size: 0.9rem; color: #00f5ff;">Oyunu yeniden başlatmak için bir tuşa bas.</span>`;
+            } else {
+                messageDisplay.innerHTML = `✨ Seviye ${level} tamamlandı!<br>
+                    Combo Bonus: +${bonusScore} | Yeni seviye için bir tuşa bas.`;
+            }
+            scoreDisplay.textContent = `Puan: ${score}`;
             document.addEventListener('keydown', nextLevelListener, { once: true });
+            document.addEventListener('touchstart', nextLevelListener, { once: true });
         }
     }
 
     // Sonraki seviyeye geçiş
-    function nextLevelListener() {
-        level++;
-        strongRate = Math.min(0.5, strongRate + 0.07);
+    function nextLevelListener(e) {
+        if (e.type === 'touchstart') e.preventDefault();
+        
+        if (level >= MAX_LEVEL) {
+            // Reset game
+            level = 1;
+            score = 0;
+            combo = 0;
+            maxCombo = 0;
+            totalWindowsBroken = 0;
+            strongRate = 0.25;
+        } else {
+            level++;
+            strongRate = Math.min(0.6, strongRate + 0.03);
+        }
         startGame();
     }
 
@@ -300,27 +577,36 @@ document.addEventListener('DOMContentLoaded', () => {
     // Oyun başlat
     function startGame() {
         createWindows();
+        createComboDisplay();
+        createProgressBar();
         scoreDisplay.textContent = `Puan: ${score}`;
         rauf = { x: 2, y: 0, breaking: false, breakAnim: 0 };
+        combo = 0;
+        
         // Düşman sayısı ve hızı level ile artar, ama hız daha düşük
         enemies = [];
         enemyCooldowns = [];
-        for (let i = 0; i < Math.min(1 + Math.floor(level/2), 5); i++) {
+        const enemyCount = Math.min(1 + Math.floor(level / ENEMIES_PER_LEVEL_DIVISOR), MAX_ENEMIES);
+        for (let i = 0; i < enemyCount; i++) {
             enemies.push({
                 x: Math.floor(Math.random()*gridWidth),
                 y: gridHeight-1,
                 dirX: Math.random() < 0.5 ? 1 : -1,
                 dirY: -1,
-                speed: 0.045 + 0.02*level + Math.random()*0.02, // DAHA YAVAŞ
+                speed: 0.04 + 0.015*level + Math.random()*0.015,
                 pos: 0
             });
             enemyCooldowns.push(0);
         }
         gameActive = true;
-        messageDisplay.innerHTML = `<b>Kontroller:</b><br>
-        Klavye: Yön tuşları/WASD ile hareket, Boşluk/Enter ile kır<br>
-        Mobil: Ok tuşları ve <b>Kır</b> butonu<br><br>
-        Seviye ${level} - Başlamak için hareket et!`;
+        
+        const theme = getBuildingColors(level);
+        messageDisplay.innerHTML = `
+            <b style="color: ${theme.border};">${theme.name}</b> - Seviye ${level}/${MAX_LEVEL}<br>
+            <span style="font-size: 0.85rem; color: #888;">
+                🎮 WASD/Oklar: Hareket | Space/Enter: Kır | 🔥 Combo: Hızlı kır!
+            </span>
+        `;
         draw();
         setTimeout(() => {
             draw();
@@ -343,7 +629,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (window.location.pathname.endsWith('game.html')) {
         // Oyun doğrudan seçili bölümle başlasın
         level = getSelectedLevel();
-        strongRate = 0.25 + 0.07 * (level-1);
+        strongRate = 0.25 + 0.03 * (level-1);
         score = 0;
         startGame();
         gameLoop();
@@ -352,8 +638,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const startScreen = document.getElementById('start-screen');
             const levelButtonsDiv = document.getElementById('level-buttons');
             const btnStart = document.getElementById('btn-start');
-            // Bölüm butonlarını oluştur
-            for (let i = 1; i <= 5; i++) {
+            
+            // Bölüm butonlarını oluştur (20 seviye)
+            for (let i = 1; i <= MAX_LEVEL; i++) {
                 const btn = document.createElement('button');
                 btn.textContent = i;
                 btn.className = 'level-btn' + (i === 1 ? ' selected' : '');
@@ -364,10 +651,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 levelButtonsDiv.appendChild(btn);
             }
+            
+            // Add controls hint
+            const controlsHint = document.createElement('div');
+            controlsHint.id = 'controls-hint';
+            controlsHint.innerHTML = `
+                <div style="margin-bottom: 8px;"><strong>🎮 Kontroller</strong></div>
+                <div>
+                    <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> 
+                    veya 
+                    <span class="key">↑</span><span class="key">←</span><span class="key">↓</span><span class="key">→</span> 
+                    Hareket
+                </div>
+                <div style="margin-top: 5px;">
+                    <span class="key">SPACE</span> veya <span class="key">ENTER</span> Cam Kır
+                </div>
+                <div style="margin-top: 8px; color: #ff00ff;">
+                    🔥 Hızlı kırarak combo yap, puan çarpanı kazan!
+                </div>
+            `;
+            btnStart.parentNode.insertBefore(controlsHint, btnStart);
+            
             btnStart.addEventListener('click', () => {
                 startScreen.style.display = 'none';
                 level = selectedLevel;
-                strongRate = 0.25 + 0.07 * (level-1);
+                strongRate = 0.25 + 0.03 * (level-1);
                 score = 0;
                 startGame();
                 gameLoop();
