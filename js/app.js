@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const cellWidth = 80;
     const MAX_LEVEL = 20; // Increased from 5 to 20 levels
     
+    // Gamer-friendly constants
+    const COMBO_TIME_WINDOW = 1500; // Time window to keep combo (ms)
+    const COMBO_TIMEOUT = 2000; // Time before combo resets (ms)
+    const ENEMIES_PER_LEVEL_DIVISOR = 3; // Divisor for calculating enemy count
+    const MAX_ENEMIES = 6; // Maximum number of enemies
+    
     // cellHeight artık dinamik:
     let cellHeight = 80;
     let rauf = { x: 2, y: 0, breaking: false, breakAnim: 0 };
@@ -414,7 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const now = Date.now();
             
             // Combo system
-            if (now - lastBreakTime < 1500) {
+            if (now - lastBreakTime < COMBO_TIME_WINDOW) {
                 combo++;
                 if (combo > maxCombo) maxCombo = combo;
                 showCombo(combo);
@@ -427,7 +433,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (comboTimer) clearTimeout(comboTimer);
             comboTimer = setTimeout(() => {
                 combo = 0;
-            }, 2000);
+            }, COMBO_TIMEOUT);
             
             // Calculate score with combo multiplier
             let baseScore = 0;
@@ -580,7 +586,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Düşman sayısı ve hızı level ile artar, ama hız daha düşük
         enemies = [];
         enemyCooldowns = [];
-        const enemyCount = Math.min(1 + Math.floor(level/3), 6);
+        const enemyCount = Math.min(1 + Math.floor(level / ENEMIES_PER_LEVEL_DIVISOR), MAX_ENEMIES);
         for (let i = 0; i < enemyCount; i++) {
             enemies.push({
                 x: Math.floor(Math.random()*gridWidth),
