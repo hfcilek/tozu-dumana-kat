@@ -685,7 +685,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', handleKey);
 
-    // Mobil kontroller
+    // Mobil kontroller - geliştirilmiş dokunmatik desteği
+    let mobileRepeatInterval = null;
+    const MOBILE_REPEAT_DELAY = 150; // ms - ilk basıştan sonra tekrar hızı
+    const MOBILE_INITIAL_DELAY = 50; // ms - ilk tepki süresi
+    
     function mobileMove(dir) {
         if (!gameActive) return;
         let moved = false;
@@ -698,27 +702,89 @@ document.addEventListener('DOMContentLoaded', () => {
             rauf.breakAnim = 0;
         }
     }
+    
     function mobileBreak() {
         if (!gameActive) return;
         smashWindow();
     }
+    
+    // Sürekli hareket için yardımcı fonksiyonlar
+    function startMobileMove(dir, btn) {
+        stopMobileMove(); // Önceki interval'ı temizle
+        if (btn) btn.classList.add('active');
+        mobileMove(dir); // İlk hareketi hemen yap
+        mobileRepeatInterval = setInterval(() => mobileMove(dir), MOBILE_REPEAT_DELAY);
+    }
+    
+    function stopMobileMove() {
+        if (mobileRepeatInterval) {
+            clearInterval(mobileRepeatInterval);
+            mobileRepeatInterval = null;
+        }
+        // Tüm butonlardan active class'ını kaldır
+        document.querySelectorAll('.ctrl-btn').forEach(btn => btn.classList.remove('active'));
+    }
+    
     // Butonlara event ekle
     const btnUp = document.getElementById('btn-up');
     const btnDown = document.getElementById('btn-down');
     const btnLeft = document.getElementById('btn-left');
     const btnRight = document.getElementById('btn-right');
     const btnBreak = document.getElementById('btn-break');
-    if (btnUp) btnUp.addEventListener('touchstart', e => { e.preventDefault(); mobileMove('up'); });
-    if (btnDown) btnDown.addEventListener('touchstart', e => { e.preventDefault(); mobileMove('down'); });
-    if (btnLeft) btnLeft.addEventListener('touchstart', e => { e.preventDefault(); mobileMove('left'); });
-    if (btnRight) btnRight.addEventListener('touchstart', e => { e.preventDefault(); mobileMove('right'); });
-    if (btnBreak) btnBreak.addEventListener('touchstart', e => { e.preventDefault(); mobileBreak(); });
-    // Mouse ile de çalışsın
-    if (btnUp) btnUp.addEventListener('mousedown', e => { e.preventDefault(); mobileMove('up'); });
-    if (btnDown) btnDown.addEventListener('mousedown', e => { e.preventDefault(); mobileMove('down'); });
-    if (btnLeft) btnLeft.addEventListener('mousedown', e => { e.preventDefault(); mobileMove('left'); });
-    if (btnRight) btnRight.addEventListener('mousedown', e => { e.preventDefault(); mobileMove('right'); });
-    if (btnBreak) btnBreak.addEventListener('mousedown', e => { e.preventDefault(); mobileBreak(); });
+    
+    // Touch events - geliştirilmiş
+    if (btnUp) {
+        btnUp.addEventListener('touchstart', e => { e.preventDefault(); startMobileMove('up', btnUp); }, { passive: false });
+        btnUp.addEventListener('touchend', e => { e.preventDefault(); stopMobileMove(); }, { passive: false });
+        btnUp.addEventListener('touchcancel', e => { stopMobileMove(); }, { passive: false });
+    }
+    if (btnDown) {
+        btnDown.addEventListener('touchstart', e => { e.preventDefault(); startMobileMove('down', btnDown); }, { passive: false });
+        btnDown.addEventListener('touchend', e => { e.preventDefault(); stopMobileMove(); }, { passive: false });
+        btnDown.addEventListener('touchcancel', e => { stopMobileMove(); }, { passive: false });
+    }
+    if (btnLeft) {
+        btnLeft.addEventListener('touchstart', e => { e.preventDefault(); startMobileMove('left', btnLeft); }, { passive: false });
+        btnLeft.addEventListener('touchend', e => { e.preventDefault(); stopMobileMove(); }, { passive: false });
+        btnLeft.addEventListener('touchcancel', e => { stopMobileMove(); }, { passive: false });
+    }
+    if (btnRight) {
+        btnRight.addEventListener('touchstart', e => { e.preventDefault(); startMobileMove('right', btnRight); }, { passive: false });
+        btnRight.addEventListener('touchend', e => { e.preventDefault(); stopMobileMove(); }, { passive: false });
+        btnRight.addEventListener('touchcancel', e => { stopMobileMove(); }, { passive: false });
+    }
+    if (btnBreak) {
+        btnBreak.addEventListener('touchstart', e => { e.preventDefault(); btnBreak.classList.add('active'); mobileBreak(); }, { passive: false });
+        btnBreak.addEventListener('touchend', e => { e.preventDefault(); btnBreak.classList.remove('active'); }, { passive: false });
+        btnBreak.addEventListener('touchcancel', e => { btnBreak.classList.remove('active'); }, { passive: false });
+    }
+    
+    // Mouse events - masaüstü için
+    if (btnUp) {
+        btnUp.addEventListener('mousedown', e => { e.preventDefault(); startMobileMove('up', btnUp); });
+        btnUp.addEventListener('mouseup', e => { stopMobileMove(); });
+        btnUp.addEventListener('mouseleave', e => { stopMobileMove(); });
+    }
+    if (btnDown) {
+        btnDown.addEventListener('mousedown', e => { e.preventDefault(); startMobileMove('down', btnDown); });
+        btnDown.addEventListener('mouseup', e => { stopMobileMove(); });
+        btnDown.addEventListener('mouseleave', e => { stopMobileMove(); });
+    }
+    if (btnLeft) {
+        btnLeft.addEventListener('mousedown', e => { e.preventDefault(); startMobileMove('left', btnLeft); });
+        btnLeft.addEventListener('mouseup', e => { stopMobileMove(); });
+        btnLeft.addEventListener('mouseleave', e => { stopMobileMove(); });
+    }
+    if (btnRight) {
+        btnRight.addEventListener('mousedown', e => { e.preventDefault(); startMobileMove('right', btnRight); });
+        btnRight.addEventListener('mouseup', e => { stopMobileMove(); });
+        btnRight.addEventListener('mouseleave', e => { stopMobileMove(); });
+    }
+    if (btnBreak) {
+        btnBreak.addEventListener('mousedown', e => { e.preventDefault(); btnBreak.classList.add('active'); mobileBreak(); });
+        btnBreak.addEventListener('mouseup', e => { btnBreak.classList.remove('active'); });
+        btnBreak.addEventListener('mouseleave', e => { btnBreak.classList.remove('active'); });
+    }
 
     // startGame();
     // gameLoop();

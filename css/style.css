@@ -20,6 +20,8 @@ html, body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
@@ -381,6 +383,8 @@ body {
 #mobile-controls {
     width: 100%;
     display: none !important;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .mobile-row {
@@ -432,11 +436,15 @@ body {
     height: 52px;
     font-size: 1.2rem;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.1s ease, color 0.1s ease;
     box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
-.ctrl-btn:active {
+.ctrl-btn:active, .ctrl-btn.active {
     background: var(--primary-neon);
     color: var(--dark-bg);
     transform: scale(0.95);
@@ -518,6 +526,7 @@ body {
         align-items: center;
         margin-bottom: 10px;
         user-select: none;
+        -webkit-user-select: none;
         background: linear-gradient(to top, rgba(10, 10, 15, 0.95), transparent);
         padding: 15px;
         border-top: 1px solid var(--primary-neon);
@@ -530,15 +539,15 @@ body {
     }
     
     .ctrl-btn {
-        width: 48px;
-        height: 48px;
-        font-size: 1.1rem;
+        width: 64px;
+        height: 64px;
+        font-size: 1.4rem;
     }
     
     #btn-break {
-        width: 60px;
-        height: 60px;
-        font-size: 0.9rem;
+        width: 80px;
+        height: 80px;
+        font-size: 1.1rem;
         margin-top: 16px;
     }
     
