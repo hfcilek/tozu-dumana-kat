@@ -8,8 +8,8 @@
     <link rel="icon" type="image/svg+xml" href="assets/rauf-favicon.svg">
     <style>
     body {
-        background: linear-gradient(to top, #e0eafc, #cfdef3);
-        font-family: 'Segoe UI', Arial, sans-serif;
+        background: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #16213e 100%);
+        font-family: 'Rajdhani', sans-serif;
         margin: 0;
         min-height: 100vh;
     }
@@ -19,37 +19,48 @@
         align-items: center;
         justify-content: flex-start;
         min-height: 100vh;
-        padding-top: 2vh;
+        padding-top: 1vh;
         position: relative;
     }
     #level-bar {
-        font-size: 1.5rem;
-        color: #1976d2;
-        margin-bottom: 1em;
+        font-family: 'Orbitron', monospace;
+        font-size: 1rem;
+        color: #39ff14;
+        margin-bottom: 0.5em;
         font-weight: bold;
-        letter-spacing: 1px;
-        text-shadow: 1px 2px 8px #b3c6e0;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+        display: flex;
+        align-items: center;
+        gap: 15px;
     }
     #game-canvas {
-        background: #e3e0d3;
-        border: 6px solid #1976d2;
-        border-radius: 18px;
-        box-shadow: 0 4px 32px #b3c6e0;
-        margin-bottom: 1em;
+        background: linear-gradient(180deg, #1a1a2e 0%, #12121a 100%);
+        border: 4px solid #00f5ff;
+        border-radius: 12px;
+        box-shadow: 0 0 30px rgba(0, 245, 255, 0.3);
+        margin-bottom: 0.5em;
         display: block;
     }
     #score {
+        font-family: 'Orbitron', monospace;
         font-size: 1.2rem;
-        color: #1976d2;
+        color: #00f5ff;
         font-weight: bold;
         margin-bottom: 0.5em;
         text-align: center;
+        text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
     }
     #message {
-        font-size: 1.1rem;
-        color: #333;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1rem;
+        color: #ffff00;
         text-align: center;
         margin-bottom: 1em;
+        text-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
+        max-width: 90%;
+        margin-left: auto;
+        margin-right: auto;
     }
     #mobile-controls {
         width: 100vw;
@@ -58,14 +69,34 @@
         left: 50%;
         bottom: 0;
         transform: translateX(-50%);
-        background: rgba(255,255,255,0.85);
-        box-shadow: 0 -2px 16px #b3c6e0;
-        padding: 0.5em 0 0.7em 0;
+        background: linear-gradient(to top, rgba(10, 10, 15, 0.95), transparent);
+        padding: 1em 0 1.5em 0;
         z-index: 10;
-        border-top-left-radius: 18px;
-        border-top-right-radius: 18px;
+        border-top: 1px solid rgba(0, 245, 255, 0.3);
         display: flex;
         justify-content: center;
+    }
+    .ctrl-btn {
+        font-family: 'Orbitron', monospace;
+        background: #12121a;
+        border: 2px solid #00f5ff;
+        color: #00f5ff;
+        border-radius: 12px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+    }
+    .ctrl-btn:active {
+        background: #00f5ff;
+        color: #0a0a0f;
+        transform: scale(0.95);
+    }
+    #btn-break {
+        background: linear-gradient(135deg, #ff3131, #ff6b6b);
+        border-color: #ff3131;
+        color: #fff;
+        box-shadow: 0 0 15px rgba(255, 49, 49, 0.5);
     }
     @media (min-width: 600px) {
         #mobile-controls {
@@ -73,17 +104,19 @@
             background: none;
             box-shadow: none;
             border-radius: 0;
-            padding: 0;
+            padding: 1em 0;
             width: auto;
             max-width: none;
+            transform: none;
+            border-top: none;
         }
     }
     @media (max-width: 600px) {
         #game-canvas {
             width: 98vw !important;
-            height: 60vh !important;
+            height: 55vh !important;
             max-width: 100vw;
-            max-height: 70vw;
+            max-height: 65vw;
         }
         #game-wrapper {
             padding-top: 0.5vh;
@@ -94,13 +127,13 @@
             left: 0;
             transform: none;
             border-radius: 0;
-            padding-bottom: env(safe-area-inset-bottom, 0.5em);
+            padding-bottom: env(safe-area-inset-bottom, 1em);
         }
         .ctrl-btn {
-            font-size: 2.1rem;
-            width: 60px;
-            height: 60px;
-            margin: 0.2em;
+            font-size: 1.5rem;
+            width: 55px;
+            height: 55px;
+            margin: 0.15em;
         }
         #mobile-arrows, #mobile-break {
             display: flex;
@@ -109,7 +142,15 @@
         }
         .mobile-row {
             flex-direction: row;
-            gap: 2vw;
+            gap: 3vw;
+            justify-content: space-around;
+            width: 100%;
+            padding: 0 10px;
+        }
+        #btn-break {
+            width: 65px;
+            height: 65px;
+            font-size: 1rem;
         }
     }
     </style>
@@ -129,7 +170,7 @@
                     </div>
                 </div>
                 <div class="mobile-col" id="mobile-break">
-                    <button class="ctrl-btn" id="btn-break">Kır</button>
+                    <button class="ctrl-btn" id="btn-break">KIR</button>
                 </div>
             </div>
         </div>

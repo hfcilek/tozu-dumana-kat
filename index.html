@@ -8,8 +8,8 @@
     <link rel="icon" type="image/svg+xml" href="assets/rauf-favicon.svg">
     <style>
     body {
-        background: linear-gradient(to top, #e0eafc, #cfdef3);
-        font-family: 'Segoe UI', Arial, sans-serif;
+        background: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #16213e 100%);
+        font-family: 'Rajdhani', sans-serif;
         margin: 0;
         min-height: 100vh;
     }
@@ -17,34 +17,58 @@
         position: fixed;
         top: 0; left: 0; right: 0; bottom: 0;
         z-index: 0;
-        background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+        background: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #16213e 100%);
         overflow: hidden;
-        animation: bgmove 18s linear infinite alternate;
     }
-    @keyframes bgmove {
-        0% { filter: hue-rotate(0deg) brightness(1); }
-        100% { filter: hue-rotate(30deg) brightness(1.08); }
-    }
-    .cloud {
+    .animated-bg::before {
+        content: '';
         position: absolute;
-        background: rgba(255,255,255,0.7);
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: 
+            radial-gradient(circle at 20% 80%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(57, 255, 20, 0.05) 0%, transparent 50%);
+        animation: bgpulse 8s ease-in-out infinite alternate;
+    }
+    @keyframes bgpulse {
+        0% { opacity: 0.5; }
+        100% { opacity: 1; }
+    }
+    /* Grid lines animation */
+    .grid-overlay {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-image: 
+            linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+        background-size: 50px 50px;
+        animation: gridmove 20s linear infinite;
+    }
+    @keyframes gridmove {
+        0% { transform: translate(0, 0); }
+        100% { transform: translate(50px, 50px); }
+    }
+    /* Floating particles */
+    .particle {
+        position: absolute;
+        width: 4px;
+        height: 4px;
+        background: #00f5ff;
         border-radius: 50%;
-        box-shadow: 60px 0 80px 10px #fff, 120px 0 100px 20px #fff;
-        animation: cloudmove 40s linear infinite;
-        opacity: 0.7;
-        filter: blur(1.5px) brightness(1.1);
-        transition: opacity 0.5s;
+        animation: float 15s linear infinite;
+        opacity: 0.6;
     }
-    .cloud:hover {
-        opacity: 1;
-        filter: blur(0.5px) brightness(1.2);
-    }
-    .cloud.small { width: 80px; height: 40px; top: 10%; left: -200px; animation-duration: 60s; }
-    .cloud.medium { width: 140px; height: 60px; top: 30%; left: -300px; animation-duration: 50s; }
-    .cloud.large { width: 220px; height: 90px; top: 60%; left: -400px; animation-duration: 70s; }
-    @keyframes cloudmove {
-        0% { left: -300px; }
-        100% { left: 110vw; }
+    .particle:nth-child(1) { left: 10%; top: 20%; animation-delay: 0s; animation-duration: 12s; }
+    .particle:nth-child(2) { left: 20%; top: 80%; animation-delay: 2s; animation-duration: 14s; background: #ff00ff; }
+    .particle:nth-child(3) { left: 60%; top: 40%; animation-delay: 4s; animation-duration: 10s; }
+    .particle:nth-child(4) { left: 80%; top: 60%; animation-delay: 1s; animation-duration: 16s; background: #39ff14; }
+    .particle:nth-child(5) { left: 40%; top: 10%; animation-delay: 3s; animation-duration: 11s; background: #ff00ff; }
+    .particle:nth-child(6) { left: 90%; top: 90%; animation-delay: 5s; animation-duration: 13s; }
+    @keyframes float {
+        0%, 100% { transform: translateY(0) translateX(0); opacity: 0.6; }
+        25% { transform: translateY(-20px) translateX(10px); opacity: 0.8; }
+        50% { transform: translateY(-10px) translateX(-10px); opacity: 0.4; }
+        75% { transform: translateY(-30px) translateX(5px); opacity: 0.9; }
     }
     #start-screen {
         z-index: 1;
@@ -54,142 +78,150 @@
         align-items: center;
         justify-content: center;
         min-height: 100vh;
-        background: rgba(255,255,255,0.95);
-        box-shadow: 0 0 40px #b3c6e0;
+        background: transparent;
     }
     .game-title {
-        font-size: 3.2rem;
-        color: #1565c0;
-        margin-bottom: 0.5em;
-        letter-spacing: 3px;
-        text-shadow: 0 8px 32px #90caf9, 0 0 32px #fff, 0 2px 0 #fff;
-        background: linear-gradient(90deg, #1976d2 30%, #64b5f6 70%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-fill-color: transparent;
-        filter: drop-shadow(0 2px 8px #b3c6e0);
-        animation: popin 1.2s cubic-bezier(.68,-0.55,.27,1.55);
+        font-family: 'Orbitron', monospace;
+        font-size: 2.5rem;
+        font-weight: 900;
+        color: #00f5ff;
+        margin-bottom: 0.3em;
+        letter-spacing: 4px;
+        text-shadow: 0 0 20px rgba(0, 245, 255, 0.5), 0 0 40px rgba(0, 245, 255, 0.3);
+        animation: titleGlow 2s ease-in-out infinite alternate;
     }
-    @keyframes popin {
-        0% { transform: scale(0.7) rotate(-10deg); opacity: 0; }
-        80% { transform: scale(1.1) rotate(2deg); opacity: 1; }
-        100% { transform: scale(1) rotate(0); opacity: 1; }
+    @keyframes titleGlow {
+        0% { text-shadow: 0 0 20px rgba(0, 245, 255, 0.5), 0 0 40px rgba(0, 245, 255, 0.3); }
+        100% { text-shadow: 0 0 30px rgba(0, 245, 255, 0.8), 0 0 60px rgba(0, 245, 255, 0.5), 0 0 80px rgba(0, 245, 255, 0.3); }
     }
     .subtitle {
-        font-size: 1.3rem;
-        color: #1976d2;
-        background: rgba(255,255,255,0.7);
-        border-radius: 12px;
-        padding: 0.5em 1.2em;
-        margin-bottom: 1.5em;
-        box-shadow: 0 2px 12px #b3c6e0;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 1.1rem;
         font-weight: 600;
-        text-shadow: 0 2px 8px #fff;
-        animation: popin 1.5s 0.2s cubic-bezier(.68,-0.55,.27,1.55) backwards;
+        color: #ccc;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 0.8em 1.5em;
+        margin-bottom: 1.5em;
+        border: 1px solid rgba(0, 245, 255, 0.2);
+    }
+    .subtitle span {
+        color: #ff00ff;
     }
     #bolumler {
         margin-top: 1.2em;
-        background: linear-gradient(120deg, #e3f2fd 60%, #fff 100%);
-        border-radius: 18px;
-        box-shadow: 0 2px 24px #b3c6e0;
-        padding: 2em 2.5em;
-        border: 2px solid #90caf9;
-        transition: box-shadow 0.3s;
-    }
-    #bolumler:hover {
-        box-shadow: 0 4px 32px #64b5f6;
+        background: rgba(26, 26, 46, 0.9);
+        border-radius: 16px;
+        box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);
+        padding: 1.5em 2em;
+        border: 2px solid #00f5ff;
+        max-width: 380px;
     }
     #bolumler h3 {
         margin-top: 0;
-        color: #1976d2;
-        font-size: 1.2rem;
+        font-family: 'Orbitron', monospace;
+        color: #39ff14;
+        font-size: 1.1rem;
+        text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
     }
     #level-buttons {
-        display: flex;
-        gap: 1em;
-        margin-top: 0.5em;
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 8px;
+        margin-top: 0.8em;
     }
     .level-btn {
-        background: #fff;
-        border: 3px solid #1976d2;
-        color: #1976d2;
-        border-radius: 50%;
-        width: 56px;
-        height: 56px;
-        font-size: 1.5rem;
+        background: #12121a;
+        border: 2px solid #00f5ff;
+        color: #00f5ff;
+        border-radius: 8px;
+        width: 48px;
+        height: 48px;
+        font-family: 'Orbitron', monospace;
+        font-size: 1rem;
         font-weight: bold;
         cursor: pointer;
-        transition: transform 0.15s, box-shadow 0.2s;
-        box-shadow: 0 4px 16px #b3c6e0;
+        transition: all 0.3s ease;
+        box-shadow: 0 0 10px rgba(0, 245, 255, 0.2);
     }
     .level-btn.selected, .level-btn:hover {
-        transform: scale(1.12) rotate(-3deg);
-        box-shadow: 0 8px 32px #1976d2;
+        background: #00f5ff;
+        color: #0a0a0f;
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(0, 245, 255, 0.5);
     }
     #btn-start {
-        background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
-        color: #1976d2;
+        font-family: 'Orbitron', monospace;
+        background: linear-gradient(135deg, #39ff14 0%, #00ff88 100%);
+        color: #0a0a0f;
         border: none;
-        border-radius: 32px;
-        padding: 1em 3em;
-        font-size: 1.5rem;
+        border-radius: 30px;
+        padding: 1em 2.5em;
+        font-size: 1.2rem;
         font-weight: bold;
         cursor: pointer;
-        box-shadow: 0 4px 24px #b3c6e0;
-        margin-top: 2em;
+        box-shadow: 0 0 30px rgba(57, 255, 20, 0.4);
+        margin-top: 1.5em;
         letter-spacing: 2px;
-        transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+        transition: all 0.3s ease;
     }
     #btn-start:hover {
-        background: linear-gradient(90deg, #38f9d7 0%, #43e97b 100%);
-        color: #1565c0;
-        box-shadow: 0 8px 32px #43e97b;
+        background: linear-gradient(135deg, #00ff88 0%, #39ff14 100%);
+        transform: translateY(-3px);
+        box-shadow: 0 0 40px rgba(57, 255, 20, 0.6);
     }
     @media (max-width: 600px) {
         body {
-            font-size: 15px;
+            font-size: 14px;
         }
         #start-screen {
             min-height: 100vh;
-            padding: 0 0.5em;
+            padding: 1em;
         }
         #bolumler {
-            padding: 1em 0.5em;
+            padding: 1em;
+            max-width: 95vw;
         }
         .game-title {
-            font-size: 2.1rem;
+            font-size: 1.6rem;
         }
         .subtitle {
-            font-size: 1rem;
-            padding: 0.4em 0.5em;
+            font-size: 0.9rem;
+            padding: 0.5em 0.8em;
         }
         .level-btn {
-            width: 38px;
-            height: 38px;
-            font-size: 1.1rem;
+            width: 40px;
+            height: 40px;
+            font-size: 0.85rem;
         }
         #btn-start {
-            font-size: 1.1rem;
-            padding: 0.7em 1.5em;
+            font-size: 1rem;
+            padding: 0.8em 1.8em;
+        }
+        #level-buttons {
+            gap: 5px;
         }
     }
     </style>
 </head>
 <body>
     <div class="animated-bg">
-        <div class="cloud small"></div>
-        <div class="cloud medium"></div>
-        <div class="cloud large"></div>
+        <div class="grid-overlay"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
     </div>
     <div id="start-screen">
-        <h2 class="game-title">Tozu Dumana Kat Rauf</h2>
-        <div class="subtitle">Bina yık, cam kır, puan topla!<br>Rauf ile eğlenceye hazır mısın?</div>
+        <h2 class="game-title">TOZU DUMANA KAT</h2>
+        <div class="subtitle">🎮 Bina yık, cam kır, <span>combo</span> yap!<br>Rauf ile eğlenceye hazır mısın?</div>
         <div id="bolumler">
-            <h3>Bölümler</h3>
+            <h3>⚡ SEVİYE SEÇ</h3>
             <div id="level-buttons"></div>
         </div>
-        <button id="btn-start" class="ctrl-btn">Oyuna Başla</button>
+        <button id="btn-start" class="ctrl-btn">▶ OYUNA BAŞLA</button>
     </div>
     <div id="game-wrapper" style="display:none">
         <div id="level-bar"></div>
@@ -205,16 +237,8 @@
                     </div>
                 </div>
                 <div class="mobile-col" id="mobile-break">
-                    <button class="ctrl-btn" id="btn-break">Kır</button>
+                    <button class="ctrl-btn" id="btn-break">KIR</button>
                 </div>
-            </div>
-        </div>
-        <div id="mobile-joystick" style="display:none; position:fixed; left:0; right:0; bottom:0; z-index:20; justify-content:center; align-items:end; pointer-events:none;">
-            <div style="display:flex; width:100vw; justify-content:center; align-items:end; gap:2vw; margin-bottom:2vh;">
-                <div id="joystick-base" style="width:70px; height:70px; background:rgba(180,200,255,0.25); border-radius:50%; position:relative; pointer-events:auto; touch-action:none;">
-                    <div id="joystick-stick" style="width:38px; height:38px; background:linear-gradient(120deg,#1976d2,#64b5f6); border-radius:50%; position:absolute; left:16px; top:16px; box-shadow:0 2px 8px #1976d2; pointer-events:auto;"></div>
-                </div>
-                <button id="joystick-break" style="width:60px; height:60px; background:linear-gradient(120deg,#43e97b,#38f9d7); border:none; border-radius:50%; color:#1976d2; font-size:1.3rem; font-weight:bold; box-shadow:0 2px 8px #43e97b; pointer-events:auto;">Kır</button>
             </div>
         </div>
     </div>
@@ -231,65 +255,6 @@
             if(selectedBtn) selectedLevel = selectedBtn.textContent;
             localStorage.setItem('selectedLevel', selectedLevel);
             window.location.href = 'game.html';
-        });
-    });
-    </script>
-    <script>
-    // Mobil joystick ve uyumlu başlatma
-    function isMobile() {
-        return /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
-    }
-    document.addEventListener('DOMContentLoaded', function() {
-        if(isMobile()) {
-            document.getElementById('mobile-controls').style.display = 'none';
-            document.getElementById('mobile-joystick').style.display = 'flex';
-        }
-        const btnStart = document.getElementById('btn-start');
-        btnStart.addEventListener('click', function() {
-            // Seçili bölümü localStorage'a kaydet
-            const selectedBtn = document.querySelector('.level-btn.selected');
-            let selectedLevel = 1;
-            if(selectedBtn) selectedLevel = selectedBtn.textContent;
-            localStorage.setItem('selectedLevel', selectedLevel);
-            window.location.href = 'game.html';
-        });
-        // Joystick hareketi
-        const base = document.getElementById('joystick-base');
-        const stick = document.getElementById('joystick-stick');
-        let dragging = false, startX=0, startY=0;
-        let movedX=0, movedY=0;
-        base.addEventListener('touchstart', function(e) {
-            dragging = true;
-            const t = e.touches[0];
-            startX = t.clientX;
-            startY = t.clientY;
-        });
-        base.addEventListener('touchmove', function(e) {
-            if(!dragging) return;
-            const t = e.touches[0];
-            movedX = t.clientX - startX;
-            movedY = t.clientY - startY;
-            // Sınırla
-            const max = 24;
-            if(movedX > max) movedX = max; if(movedX < -max) movedX = -max;
-            if(movedY > max) movedY = max; if(movedY < -max) movedY = -max;
-            stick.style.transform = `translate(${movedX}px,${movedY}px)`;
-        });
-        base.addEventListener('touchend', function(e) {
-            dragging = false;
-            stick.style.transform = '';
-            // Yön algıla
-            if(Math.abs(movedX) > Math.abs(movedY)) {
-                if(movedX > 10) window.dispatchEvent(new CustomEvent('joystick-move', {detail:'right'}));
-                else if(movedX < -10) window.dispatchEvent(new CustomEvent('joystick-move', {detail:'left'}));
-            } else {
-                if(movedY > 10) window.dispatchEvent(new CustomEvent('joystick-move', {detail:'down'}));
-                else if(movedY < -10) window.dispatchEvent(new CustomEvent('joystick-move', {detail:'up'}));
-            }
-            movedX=0; movedY=0;
-        });
-        document.getElementById('joystick-break').addEventListener('touchstart', function(e){
-            window.dispatchEvent(new CustomEvent('joystick-break'));
         });
     });
     </script>
