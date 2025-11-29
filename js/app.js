@@ -469,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
             scoreDisplay.textContent = `Puan: ${score}`;
             
             // Show message
-            messageDisplay.textContent = '💥 Tamirciyi sersemletttin! 15 saniye hareketsiz!';
+            messageDisplay.textContent = '💥 Tamirciyi sersemlettin! 15 saniye hareketsiz!';
             messageDisplay.style.color = '#ffff00';
             setTimeout(() => {
                 messageDisplay.style.color = '';
