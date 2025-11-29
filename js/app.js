@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const COMBO_TIMEOUT = 2000; // Time before combo resets (ms)
     const ENEMIES_PER_LEVEL_DIVISOR = 3; // Divisor for calculating enemy count
     const MAX_ENEMIES = 6; // Maximum number of enemies
+    const ENEMY_STUN_DURATION = 15000; // 15 seconds stun duration in milliseconds
     
     // cellHeight artık dinamik:
     let cellHeight = 80;
@@ -177,16 +178,22 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.save();
             ctx.translate(px, py);
             
+            // If stunned, reduce opacity and add different glow
+            const isStunned = enemy.stunned && enemy.stunnedUntil > Date.now();
+            if (isStunned) {
+                ctx.globalAlpha = 0.5 + 0.2 * Math.sin(Date.now() / 100); // Blinking effect
+            }
+            
             // Glow effect
-            ctx.shadowColor = '#0088ff';
+            ctx.shadowColor = isStunned ? '#ffff00' : '#0088ff';
             ctx.shadowBlur = 12;
             
             // Gövde (blue tech suit)
-            ctx.fillStyle = '#0066cc';
+            ctx.fillStyle = isStunned ? '#666666' : '#0066cc';
             ctx.fillRect(-16, 0, 32, 28);
             
             // Tech details
-            ctx.fillStyle = '#00aaff';
+            ctx.fillStyle = isStunned ? '#888888' : '#00aaff';
             ctx.fillRect(-14, 4, 4, 20);
             ctx.fillRect(10, 4, 4, 20);
             
@@ -198,20 +205,49 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.fill();
             
             // Tech visor/helmet
-            ctx.shadowColor = '#00ffff';
+            ctx.shadowColor = isStunned ? '#ffff00' : '#00ffff';
             ctx.fillStyle = '#003366';
             ctx.fillRect(-14, -24, 28, 10);
-            ctx.fillStyle = '#00ffff';
+            ctx.fillStyle = isStunned ? '#ffff00' : '#00ffff';
             ctx.fillRect(-10, -22, 20, 4);
             
-            // Gözler
-            ctx.fillStyle = '#222';
-            ctx.fillRect(-6, -18, 4, 4);
-            ctx.fillRect(2, -18, 4, 4);
+            // Gözler - stunned olunca spiral/sersem gözler
+            if (isStunned) {
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1.5;
+                // Sol spiral göz
+                ctx.beginPath();
+                ctx.arc(-4, -16, 3, 0, Math.PI * 4);
+                ctx.stroke();
+                // Sağ spiral göz
+                ctx.beginPath();
+                ctx.arc(4, -16, 3, 0, Math.PI * 4);
+                ctx.stroke();
+                
+                // Stun stars/yıldızlar
+                ctx.fillStyle = '#ffff00';
+                for (let i = 0; i < 3; i++) {
+                    const angle = (Date.now() / 200) + (i * Math.PI * 2 / 3);
+                    const starX = Math.cos(angle) * 20;
+                    const starY = -30 + Math.sin(angle * 2) * 3;
+                    ctx.beginPath();
+                    ctx.arc(starX, starY, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            } else {
+                ctx.fillStyle = '#222';
+                ctx.fillRect(-6, -18, 4, 4);
+                ctx.fillRect(2, -18, 4, 4);
+            }
             
-            // Tech tool (wrench)
+            // Tech tool (wrench) - stunned olunca düşmüş göster
             ctx.save();
-            ctx.rotate(-0.4);
+            if (isStunned) {
+                ctx.rotate(0.8); // dropped wrench
+                ctx.globalAlpha = 0.4;
+            } else {
+                ctx.rotate(-0.4);
+            }
             ctx.shadowColor = '#ffff00';
             ctx.fillStyle = '#ffcc00';
             ctx.fillRect(16, 8, 14, 4);
@@ -219,6 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.arc(30, 10, 5, 0, Math.PI*2);
             ctx.fill();
             ctx.restore();
+            
             ctx.restore();
         });
     }
@@ -415,6 +452,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cam kırma with combo system
     function smashWindow() {
         if (rauf.breaking) return;
+        
+        // Check if there's an enemy at Rauf's position to stun
+        const enemyToStun = enemies.find(e => e.x === rauf.x && e.y === rauf.y && !e.stunned);
+        if (enemyToStun) {
+            // Stun the enemy for 15 seconds
+            enemyToStun.stunned = true;
+            enemyToStun.stunnedUntil = Date.now() + ENEMY_STUN_DURATION;
+            
+            // Play animation
+            rauf.breaking = true;
+            rauf.breakAnim = 8;
+            
+            // Give bonus points for stunning enemy
+            score += 25;
+            scoreDisplay.textContent = `Puan: ${score}`;
+            
+            // Show message
+            messageDisplay.textContent = '💥 Tamirciyi sersemletttin! 15 saniye hareketsiz!';
+            messageDisplay.style.color = '#ffff00';
+            setTimeout(() => {
+                messageDisplay.style.color = '';
+            }, 2000);
+            
+            screenShake();
+            return;
+        }
+        
         const w = windows.find(w => w.x === rauf.x && w.y === rauf.y);
         if (w && !w.broken) {
             const now = Date.now();
@@ -479,6 +543,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Düşman hareketi (yavaş ve cam tamiri)
     function updateEnemies() {
         enemies.forEach((enemy, i) => {
+            // Skip stunned enemies
+            if (enemy.stunned && enemy.stunnedUntil > Date.now()) {
+                return;
+            }
+            // Clear stun if expired
+            if (enemy.stunned && enemy.stunnedUntil <= Date.now()) {
+                enemy.stunned = false;
+            }
+            
             enemy.pos += enemy.speed;
             if (enemy.pos >= 1) {
                 if (Math.random() < 0.4) {
@@ -594,7 +667,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 dirX: Math.random() < 0.5 ? 1 : -1,
                 dirY: -1,
                 speed: 0.04 + 0.015*level + Math.random()*0.015,
-                pos: 0
+                pos: 0,
+                stunned: false,
+                stunnedUntil: 0
             });
             enemyCooldowns.push(0);
         }
@@ -604,7 +679,7 @@ document.addEventListener('DOMContentLoaded', () => {
         messageDisplay.innerHTML = `
             <b style="color: ${theme.border};">${theme.name}</b> - Seviye ${level}/${MAX_LEVEL}<br>
             <span style="font-size: 0.85rem; color: #888;">
-                🎮 WASD/Oklar: Hareket | Space/Enter: Kır | 🔥 Combo: Hızlı kır!
+                🎮 WASD/Oklar: Hareket | Space/Enter: Kır | 💥 Düşmana vur: 15sn sersemlet!
             </span>
         `;
         draw();
@@ -664,9 +739,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     Hareket
                 </div>
                 <div style="margin-top: 5px;">
-                    <span class="key">SPACE</span> veya <span class="key">ENTER</span> Cam Kır
+                    <span class="key">SPACE</span> veya <span class="key">ENTER</span> Cam Kır / Düşmana Vur
                 </div>
-                <div style="margin-top: 8px; color: #ff00ff;">
+                <div style="margin-top: 8px; color: #ffff00;">
+                    💥 Düşmana vurarak 15 saniye sersemlet!
+                </div>
+                <div style="margin-top: 5px; color: #ff00ff;">
                     🔥 Hızlı kırarak combo yap, puan çarpanı kazan!
                 </div>
             `;
