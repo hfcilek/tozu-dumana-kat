@@ -2,7 +2,7 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Tozu Dumana Kat Rauf - Oyun</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -10,160 +10,232 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="icon" type="image/svg+xml" href="assets/rauf-favicon.svg">
     <style>
-    body {
+    * {
+        box-sizing: border-box;
+    }
+    html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
         background: linear-gradient(135deg, #0a0a0f 0%, #12121a 50%, #16213e 100%);
         font-family: 'Rajdhani', sans-serif;
-        margin: 0;
-        min-height: 100vh;
-        touch-action: manipulation;
+        touch-action: none;
         -webkit-tap-highlight-color: transparent;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
     }
     #game-wrapper {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: flex-start;
-        min-height: 100vh;
-        padding-top: 1vh;
+        width: 100%;
+        height: 100%;
+        padding: env(safe-area-inset-top, 5px) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 5px) env(safe-area-inset-left, 0);
         position: relative;
+        overflow: hidden;
     }
     #level-bar {
         font-family: 'Orbitron', monospace;
-        font-size: 1rem;
+        font-size: 0.9rem;
         color: #39ff14;
-        margin-bottom: 0.5em;
         font-weight: bold;
         letter-spacing: 2px;
         text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 15px;
+        width: 100%;
+        padding: 5px 10px;
+        flex-shrink: 0;
     }
     #game-canvas {
         background: linear-gradient(180deg, #1a1a2e 0%, #12121a 100%);
-        border: 4px solid #00f5ff;
-        border-radius: 12px;
-        box-shadow: 0 0 30px rgba(0, 245, 255, 0.3);
-        margin-bottom: 0.5em;
+        border: 3px solid #00f5ff;
+        border-radius: 8px;
+        box-shadow: 0 0 20px rgba(0, 245, 255, 0.3);
         display: block;
+        flex-shrink: 1;
+        flex-grow: 1;
+        max-width: 100%;
+        max-height: calc(100% - 180px);
+        touch-action: none;
     }
     #score {
         font-family: 'Orbitron', monospace;
-        font-size: 1.2rem;
+        font-size: 1rem;
         color: #00f5ff;
         font-weight: bold;
-        margin-bottom: 0.5em;
         text-align: center;
         text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+        padding: 5px 0;
+        flex-shrink: 0;
     }
     #message {
         font-family: 'Rajdhani', sans-serif;
-        font-size: 1rem;
+        font-size: 0.85rem;
         color: #ffff00;
         text-align: center;
-        margin-bottom: 1em;
         text-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
-        max-width: 90%;
-        margin-left: auto;
-        margin-right: auto;
+        max-width: 95%;
+        padding: 2px 5px;
+        flex-shrink: 0;
+        min-height: 20px;
     }
     #mobile-controls {
-        width: 100vw;
-        max-width: 400px;
-        position: fixed;
-        left: 50%;
-        bottom: 0;
-        transform: translateX(-50%);
-        background: linear-gradient(to top, rgba(10, 10, 15, 0.95), transparent);
-        padding: 1em 0 1.5em 0;
-        z-index: 10;
-        border-top: 1px solid rgba(0, 245, 255, 0.3);
+        width: 100%;
+        background: linear-gradient(to top, rgba(10, 10, 15, 0.98), rgba(10, 10, 15, 0.7));
+        padding: 10px 15px calc(10px + env(safe-area-inset-bottom, 0px)) 15px;
         display: flex;
-        justify-content: center;
-        touch-action: manipulation;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+        border-top: 1px solid rgba(0, 245, 255, 0.3);
+        touch-action: none;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
         -webkit-user-select: none;
     }
-    .ctrl-btn {
-        font-family: 'Orbitron', monospace;
-        background: #12121a;
+    
+    /* Joystick Styles */
+    #joystick-container {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        flex-shrink: 0;
+    }
+    #joystick-base {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        background: radial-gradient(circle, rgba(0, 245, 255, 0.1) 0%, rgba(0, 245, 255, 0.05) 100%);
+        border: 2px solid rgba(0, 245, 255, 0.4);
+        border-radius: 50%;
+        box-shadow: 0 0 15px rgba(0, 245, 255, 0.2), inset 0 0 30px rgba(0, 0, 0, 0.5);
+    }
+    #joystick-thumb {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        background: radial-gradient(circle, #00f5ff 0%, #0088aa 100%);
         border: 2px solid #00f5ff;
-        color: #00f5ff;
-        border-radius: 12px;
+        border-radius: 50%;
+        box-shadow: 0 0 20px rgba(0, 245, 255, 0.6), inset 0 2px 5px rgba(255, 255, 255, 0.3);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        transition: box-shadow 0.1s ease;
+    }
+    #joystick-thumb.active {
+        box-shadow: 0 0 30px rgba(0, 245, 255, 0.9), inset 0 2px 5px rgba(255, 255, 255, 0.5);
+    }
+    
+    /* Break button */
+    #btn-break {
+        font-family: 'Orbitron', monospace;
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ff4444 0%, #cc0000 100%);
+        border: 3px solid #ff3131;
+        color: #fff;
+        font-size: 1.1rem;
         font-weight: bold;
+        box-shadow: 0 0 25px rgba(255, 49, 49, 0.6), inset 0 2px 5px rgba(255, 255, 255, 0.2);
         cursor: pointer;
-        transition: background 0.1s ease, color 0.1s ease;
-        box-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
         touch-action: manipulation;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
         -webkit-user-select: none;
+        flex-shrink: 0;
+        transition: transform 0.1s ease, box-shadow 0.1s ease;
     }
-    .ctrl-btn:active, .ctrl-btn.active {
-        background: #00f5ff;
-        color: #0a0a0f;
-        transform: scale(0.95);
+    #btn-break:active, #btn-break.active {
+        transform: scale(0.92);
+        box-shadow: 0 0 15px rgba(255, 49, 49, 0.8), inset 0 2px 10px rgba(0, 0, 0, 0.3);
     }
-    #btn-break {
-        background: linear-gradient(135deg, #ff3131, #ff6b6b);
-        border-color: #ff3131;
-        color: #fff;
-        box-shadow: 0 0 15px rgba(255, 49, 49, 0.5);
-    }
-    @media (min-width: 600px) {
+    
+    /* Desktop styles */
+    @media (min-width: 601px) {
+        #game-canvas {
+            max-height: calc(100% - 120px);
+        }
         #mobile-controls {
-            position: static;
-            background: none;
-            box-shadow: none;
-            border-radius: 0;
-            padding: 1em 0;
-            width: auto;
-            max-width: none;
-            transform: none;
-            border-top: none;
+            display: none !important;
+        }
+        #score, #message {
+            display: block;
         }
     }
+    
+    /* Mobile styles */
     @media (max-width: 600px) {
         #game-canvas {
-            width: 98vw !important;
-            height: 50vh !important;
-            max-width: 100vw;
-            max-height: 65vw;
+            max-height: calc(100% - 200px);
+            width: calc(100% - 10px);
+            border-width: 2px;
         }
-        #game-wrapper {
-            padding-top: 0.5vh;
+        #level-bar {
+            font-size: 0.8rem;
+            padding: 3px 10px;
         }
-        #mobile-controls {
-            width: 100vw;
-            max-width: 100vw;
-            left: 0;
-            transform: none;
-            border-radius: 0;
-            padding: 12px 0 calc(12px + env(safe-area-inset-bottom, 0px)) 0;
+        #score {
+            font-size: 0.9rem;
+            padding: 3px 0;
         }
-        .ctrl-btn {
-            font-size: 1.8rem;
-            width: 64px;
-            height: 64px;
-            margin: 0.2em;
+        #message {
+            font-size: 0.75rem;
+            padding: 2px 5px;
         }
-        #mobile-arrows, #mobile-break {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        #joystick-container {
+            width: 100px;
+            height: 100px;
         }
-        .mobile-row {
-            flex-direction: row;
-            gap: 5vw;
-            justify-content: space-around;
-            width: 100%;
-            padding: 0 15px;
+        #joystick-base {
+            width: 100px;
+            height: 100px;
+        }
+        #joystick-thumb {
+            width: 44px;
+            height: 44px;
         }
         #btn-break {
+            width: 85px;
+            height: 85px;
+            font-size: 1rem;
+        }
+    }
+    
+    /* Very small screens */
+    @media (max-height: 600px) {
+        #game-canvas {
+            max-height: calc(100% - 160px);
+        }
+        #joystick-container {
             width: 80px;
             height: 80px;
-            font-size: 1.2rem;
+        }
+        #joystick-base {
+            width: 80px;
+            height: 80px;
+        }
+        #joystick-thumb {
+            width: 36px;
+            height: 36px;
+        }
+        #btn-break {
+            width: 70px;
+            height: 70px;
+            font-size: 0.9rem;
+        }
+        #mobile-controls {
+            padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)) 10px;
         }
     }
     </style>
@@ -172,24 +244,16 @@
     <div id="game-wrapper">
         <div id="level-bar"></div>
         <canvas id="game-canvas" width="400" height="800"></canvas>
+        <div id="score">Puan: 0</div>
+        <div id="message"></div>
         <div id="mobile-controls">
-            <div class="mobile-row">
-                <div class="mobile-col" id="mobile-arrows">
-                    <button class="ctrl-btn" id="btn-up">▲</button>
-                    <div>
-                        <button class="ctrl-btn" id="btn-left">◀</button>
-                        <button class="ctrl-btn" id="btn-down">▼</button>
-                        <button class="ctrl-btn" id="btn-right">▶</button>
-                    </div>
-                </div>
-                <div class="mobile-col" id="mobile-break">
-                    <button class="ctrl-btn" id="btn-break">KIR</button>
-                </div>
+            <div id="joystick-container">
+                <div id="joystick-base"></div>
+                <div id="joystick-thumb"></div>
             </div>
+            <button id="btn-break">KIR</button>
         </div>
     </div>
-    <div id="score">Puan: 0</div>
-    <div id="message"></div>
     <script src="js/app.js"></script>
 </body>
 </html>
