@@ -19,6 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_ENEMIES = 6; // Maximum number of enemies
     const ENEMY_STUN_DURATION = 15000; // 15 seconds stun duration in milliseconds
     
+    // Glass shard physics constants
+    const SHARD_GRAVITY = 0.15;
+    const SHARD_BASE_LIFE = 60;
+    
     // cellHeight artık dinamik:
     let cellHeight = 80;
     let rauf = { x: 2, y: 0, breaking: false, breakAnim: 0 };
@@ -158,12 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Create glass shard particle
-    function createGlassShards(windowX, windowY, isStrong) {
+    function createGlassShards(windowX, windowY, isStrong, theme) {
         const px = windowX * cellWidth + cellWidth / 2;
         const py = canvas.height - (windowY * cellHeight + cellHeight / 2);
         
         const numShards = 12 + Math.floor(Math.random() * 8);
-        const theme = getBuildingColors(level);
         
         for (let i = 0; i < numShards; i++) {
             const angle = (Math.PI * 2 / numShards) * i + Math.random() * 0.5;
@@ -180,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 size: size,
                 alpha: 1,
                 color: isStrong ? theme.strong : theme.window,
-                life: 60 + Math.floor(Math.random() * 30)
+                life: SHARD_BASE_LIFE + Math.floor(Math.random() * 30)
             });
         }
     }
@@ -191,10 +194,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const shard = glassShards[i];
             shard.x += shard.vx;
             shard.y += shard.vy;
-            shard.vy += 0.15; // Gravity
+            shard.vy += SHARD_GRAVITY;
             shard.rotation += shard.rotationSpeed;
             shard.life--;
-            shard.alpha = Math.max(0, shard.life / 60);
+            shard.alpha = Math.max(0, shard.life / SHARD_BASE_LIFE);
             
             if (shard.life <= 0) {
                 glassShards.splice(i, 1);
@@ -697,6 +700,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 combo = 0;
             }, COMBO_TIMEOUT);
             
+            // Get theme for shard colors
+            const theme = getBuildingColors(level);
+            
             // Calculate score with combo multiplier
             let baseScore = 0;
             if (w.strong) {
@@ -707,7 +713,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     baseScore = 20;
                     // Play glass break sound and create shards for strong window
                     playGlassBreakSound();
-                    createGlassShards(w.x, w.y, true);
+                    createGlassShards(w.x, w.y, w.strong, theme);
                     screenShake();
                 } else {
                     baseScore = 5;
@@ -720,7 +726,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 baseScore = 10;
                 // Play glass break sound and create shards
                 playGlassBreakSound();
-                createGlassShards(w.x, w.y, false);
+                createGlassShards(w.x, w.y, w.strong, theme);
             }
             
             // Apply combo multiplier
