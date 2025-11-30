@@ -19,6 +19,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const MAX_ENEMIES = 6; // Maximum number of enemies
     const ENEMY_STUN_DURATION = 15000; // 15 seconds stun duration in milliseconds
     
+    // Glass shard physics constants
+    const SHARD_GRAVITY = 0.15;
+    const SHARD_BASE_LIFE = 60;
+    
     // cellHeight artık dinamik:
     let cellHeight = 80;
     let rauf = { x: 2, y: 0, breaking: false, breakAnim: 0 };
@@ -36,6 +40,200 @@ document.addEventListener('DOMContentLoaded', () => {
     let comboTimer = null;
     let totalWindowsBroken = 0;
     let lastBreakTime = 0;
+    
+    // Glass shard particles for realistic breaking effect
+    let glassShards = [];
+    
+    // Sound system
+    let audioContext = null;
+    let soundEnabled = true;
+    
+    // Initialize audio context on first user interaction
+    function initAudio() {
+        if (!audioContext) {
+            try {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.log('Web Audio API not supported');
+                soundEnabled = false;
+            }
+        }
+        return audioContext;
+    }
+    
+    // Play glass breaking sound
+    function playGlassBreakSound() {
+        if (!soundEnabled) return;
+        const ctx = initAudio();
+        if (!ctx) return;
+        
+        // Create multiple short noise bursts to simulate glass shattering
+        const duration = 0.15;
+        const numBursts = 3;
+        
+        for (let i = 0; i < numBursts; i++) {
+            const bufferSize = ctx.sampleRate * duration;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            
+            // Generate noise with high frequency emphasis for glass sound
+            for (let j = 0; j < bufferSize; j++) {
+                const t = j / ctx.sampleRate;
+                // Rapid decay envelope
+                const envelope = Math.exp(-t * 30);
+                // Mix of noise and high frequency components
+                data[j] = (Math.random() * 2 - 1) * envelope * 0.3;
+            }
+            
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            
+            // High-pass filter for glassy sound
+            const highpass = ctx.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.value = 2000 + Math.random() * 2000;
+            
+            const gainNode = ctx.createGain();
+            gainNode.gain.value = 0.15;
+            
+            source.connect(highpass);
+            highpass.connect(gainNode);
+            gainNode.connect(ctx.destination);
+            
+            source.start(ctx.currentTime + i * 0.03);
+        }
+    }
+    
+    // Play crack sound for strong windows
+    function playCrackSound() {
+        if (!soundEnabled) return;
+        const ctx = initAudio();
+        if (!ctx) return;
+        
+        const duration = 0.08;
+        const bufferSize = ctx.sampleRate * duration;
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        
+        for (let j = 0; j < bufferSize; j++) {
+            const t = j / ctx.sampleRate;
+            const envelope = Math.exp(-t * 50);
+            data[j] = (Math.random() * 2 - 1) * envelope * 0.2;
+        }
+        
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        
+        const highpass = ctx.createBiquadFilter();
+        highpass.type = 'highpass';
+        highpass.frequency.value = 3000;
+        
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = 0.1;
+        
+        source.connect(highpass);
+        highpass.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        source.start();
+    }
+    
+    // Play stun sound
+    function playStunSound() {
+        if (!soundEnabled) return;
+        const ctx = initAudio();
+        if (!ctx) return;
+        
+        const oscillator = ctx.createOscillator();
+        const gainNode = ctx.createGain();
+        
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(200, ctx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.2);
+        
+        gainNode.gain.setValueAtTime(0.15, ctx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        oscillator.start();
+        oscillator.stop(ctx.currentTime + 0.2);
+    }
+    
+    // Create glass shard particle
+    function createGlassShards(windowX, windowY, isStrong, theme) {
+        const px = windowX * cellWidth + cellWidth / 2;
+        const py = canvas.height - (windowY * cellHeight + cellHeight / 2);
+        
+        const numShards = 12 + Math.floor(Math.random() * 8);
+        
+        for (let i = 0; i < numShards; i++) {
+            const angle = (Math.PI * 2 / numShards) * i + Math.random() * 0.5;
+            const speed = 2 + Math.random() * 4;
+            const size = 3 + Math.random() * 8;
+            
+            glassShards.push({
+                x: px + (Math.random() - 0.5) * 20,
+                y: py + (Math.random() - 0.5) * 20,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed - 2, // Initial upward velocity
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.3,
+                size: size,
+                alpha: 1,
+                color: isStrong ? theme.strong : theme.window,
+                life: SHARD_BASE_LIFE + Math.floor(Math.random() * 30)
+            });
+        }
+    }
+    
+    // Update glass shards
+    function updateGlassShards() {
+        for (let i = glassShards.length - 1; i >= 0; i--) {
+            const shard = glassShards[i];
+            shard.x += shard.vx;
+            shard.y += shard.vy;
+            shard.vy += SHARD_GRAVITY;
+            shard.rotation += shard.rotationSpeed;
+            shard.life--;
+            shard.alpha = Math.max(0, shard.life / SHARD_BASE_LIFE);
+            
+            if (shard.life <= 0) {
+                glassShards.splice(i, 1);
+            }
+        }
+    }
+    
+    // Draw glass shards
+    function drawGlassShards() {
+        glassShards.forEach(shard => {
+            ctx.save();
+            ctx.translate(shard.x, shard.y);
+            ctx.rotate(shard.rotation);
+            ctx.globalAlpha = shard.alpha;
+            
+            // Draw triangular shard
+            ctx.fillStyle = shard.color;
+            ctx.beginPath();
+            ctx.moveTo(0, -shard.size);
+            ctx.lineTo(shard.size * 0.6, shard.size * 0.5);
+            ctx.lineTo(-shard.size * 0.6, shard.size * 0.5);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Add highlight
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.beginPath();
+            ctx.moveTo(0, -shard.size * 0.8);
+            ctx.lineTo(shard.size * 0.2, 0);
+            ctx.lineTo(-shard.size * 0.2, 0);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.restore();
+        });
+    }
     
     // Create combo display element
     function createComboDisplay() {
@@ -291,33 +489,18 @@ document.addEventListener('DOMContentLoaded', () => {
     function drawWindows() {
         const theme = getBuildingColors(level);
         
-        // Bina gövdesi (arka plan with grid effect)
+        // Bina gövdesi (arka plan - simplified)
         ctx.save();
         ctx.fillStyle = theme.body;
         ctx.strokeStyle = theme.border;
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 3;
+        // Reduced glow effect
         ctx.shadowColor = theme.border;
-        ctx.shadowBlur = 20;
+        ctx.shadowBlur = 8;
         ctx.beginPath();
-        ctx.roundRect(0, 0, canvas.width, canvas.height, 16);
+        ctx.roundRect(0, 0, canvas.width, canvas.height, 12);
         ctx.fill();
         ctx.stroke();
-        
-        // Grid overlay effect
-        ctx.strokeStyle = 'rgba(255,255,255,0.03)';
-        ctx.lineWidth = 1;
-        for (let i = 0; i < canvas.width; i += 20) {
-            ctx.beginPath();
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i, canvas.height);
-            ctx.stroke();
-        }
-        for (let i = 0; i < canvas.height; i += 20) {
-            ctx.beginPath();
-            ctx.moveTo(0, i);
-            ctx.lineTo(canvas.width, i);
-            ctx.stroke();
-        }
         ctx.restore();
         
         // Camlar
@@ -327,81 +510,93 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.save();
             ctx.translate(px, py);
             
-            // Window frame with glow
-            ctx.shadowColor = theme.border;
-            ctx.shadowBlur = w.broken ? 0 : 8;
-            ctx.fillStyle = theme.border;
+            // Window frame - simple solid color
+            ctx.fillStyle = '#444';
             ctx.fillRect(4, 4, cellWidth-8, cellHeight-8);
             
             if (!w.broken) {
-                // Glass with gradient
-                const gradient = ctx.createLinearGradient(8, 8, cellWidth-16, cellHeight-16);
-                gradient.addColorStop(0, w.strong ? theme.strong : theme.window);
-                gradient.addColorStop(1, w.strong ? theme.border : theme.window);
+                // Glass - more realistic gradient
+                const gradient = ctx.createLinearGradient(8, 8, cellWidth-8, cellHeight-8);
+                if (w.strong) {
+                    gradient.addColorStop(0, theme.strong);
+                    gradient.addColorStop(0.5, theme.window);
+                    gradient.addColorStop(1, theme.strong);
+                } else {
+                    gradient.addColorStop(0, 'rgba(135, 206, 235, 0.7)'); // Light blue glass
+                    gradient.addColorStop(0.5, 'rgba(100, 149, 237, 0.6)');
+                    gradient.addColorStop(1, 'rgba(70, 130, 180, 0.7)');
+                }
                 ctx.fillStyle = gradient;
                 ctx.fillRect(8, 8, cellWidth-16, cellHeight-16);
                 
-                // Shine effect
-                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                // Realistic glass reflection
+                ctx.fillStyle = 'rgba(255,255,255,0.25)';
                 ctx.beginPath();
-                ctx.moveTo(12, 12);
-                ctx.lineTo(24, 12);
-                ctx.lineTo(12, 24);
+                ctx.moveTo(10, 10);
+                ctx.lineTo(28, 10);
+                ctx.lineTo(10, 28);
                 ctx.closePath();
                 ctx.fill();
                 
-                // Crack indicator for strong windows
+                // Second reflection
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.fillRect(cellWidth - 24, cellHeight - 24, 12, 12);
+                
+                // Crack indicator for strong windows (more visible)
                 if (w.strong && w.hit === 1) {
-                    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+                    ctx.strokeStyle = 'rgba(255,255,255,0.7)';
                     ctx.lineWidth = 2;
+                    // Main crack
                     ctx.beginPath();
-                    ctx.moveTo(cellWidth/2, 12);
-                    ctx.lineTo(cellWidth/2 - 10, cellHeight/2);
-                    ctx.lineTo(cellWidth/2 + 10, cellHeight - 12);
+                    ctx.moveTo(cellWidth/2 - 5, 12);
+                    ctx.lineTo(cellWidth/2, cellHeight/2);
+                    ctx.lineTo(cellWidth/2 + 8, cellHeight - 12);
+                    ctx.stroke();
+                    // Branch cracks
+                    ctx.beginPath();
+                    ctx.moveTo(cellWidth/2, cellHeight/2);
+                    ctx.lineTo(cellWidth - 15, cellHeight/2 + 8);
                     ctx.stroke();
                     ctx.beginPath();
                     ctx.moveTo(cellWidth/2, cellHeight/2);
-                    ctx.lineTo(cellWidth - 12, cellHeight/2 + 10);
+                    ctx.lineTo(15, cellHeight/2 - 5);
                     ctx.stroke();
                 }
             } else {
-                // Broken window (dark hole)
-                ctx.fillStyle = '#000';
+                // Broken window - dark interior
+                ctx.fillStyle = '#0a0a0a';
                 ctx.fillRect(8, 8, cellWidth-16, cellHeight-16);
                 
-                // Broken glass shards
-                ctx.strokeStyle = theme.border;
-                ctx.lineWidth = 1;
-                ctx.globalAlpha = 0.4;
+                // Remaining glass shards on edges (static)
+                ctx.fillStyle = 'rgba(135, 206, 235, 0.4)';
+                // Top left shard
                 ctx.beginPath();
                 ctx.moveTo(8, 8);
-                ctx.lineTo(cellWidth/2, cellHeight/2);
+                ctx.lineTo(20, 8);
+                ctx.lineTo(8, 18);
+                ctx.closePath();
+                ctx.fill();
+                // Top right shard
+                ctx.beginPath();
                 ctx.moveTo(cellWidth-8, 8);
-                ctx.lineTo(cellWidth/2, cellHeight/2);
+                ctx.lineTo(cellWidth-18, 8);
+                ctx.lineTo(cellWidth-8, 15);
+                ctx.closePath();
+                ctx.fill();
+                // Bottom left shard
+                ctx.beginPath();
                 ctx.moveTo(8, cellHeight-8);
-                ctx.lineTo(cellWidth/2, cellHeight/2);
+                ctx.lineTo(15, cellHeight-8);
+                ctx.lineTo(8, cellHeight-20);
+                ctx.closePath();
+                ctx.fill();
+                // Bottom right shard
+                ctx.beginPath();
                 ctx.moveTo(cellWidth-8, cellHeight-8);
-                ctx.lineTo(cellWidth/2, cellHeight/2);
-                ctx.stroke();
-                ctx.globalAlpha = 1;
-                
-                // Break animation particles
-                if (w.breakAnim > 0) {
-                    ctx.globalAlpha = w.breakAnim/8;
-                    ctx.fillStyle = theme.border;
-                    for (let i = 0; i < 5; i++) {
-                        const angle = (Math.PI * 2 / 5) * i + w.breakAnim/4;
-                        const dist = 10 + (8 - w.breakAnim) * 5;
-                        ctx.beginPath();
-                        ctx.arc(
-                            cellWidth/2 + Math.cos(angle) * dist,
-                            cellHeight/2 + Math.sin(angle) * dist,
-                            3, 0, Math.PI*2
-                        );
-                        ctx.fill();
-                    }
-                    ctx.globalAlpha = 1;
-                }
+                ctx.lineTo(cellWidth-8, cellHeight-16);
+                ctx.lineTo(cellWidth-20, cellHeight-8);
+                ctx.closePath();
+                ctx.fill();
             }
             ctx.restore();
         });
@@ -415,6 +610,9 @@ document.addEventListener('DOMContentLoaded', () => {
         drawWindows();
         drawEnemies();
         drawRauf();
+        
+        // Draw glass shards on top of everything
+        drawGlassShards();
         
         // Update progress
         updateProgress();
@@ -460,6 +658,9 @@ document.addEventListener('DOMContentLoaded', () => {
             enemyToStun.stunned = true;
             enemyToStun.stunnedUntil = Date.now() + ENEMY_STUN_DURATION;
             
+            // Play stun sound
+            playStunSound();
+            
             // Play animation
             rauf.breaking = true;
             rauf.breakAnim = 8;
@@ -499,6 +700,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 combo = 0;
             }, COMBO_TIMEOUT);
             
+            // Get theme for shard colors
+            const theme = getBuildingColors(level);
+            
             // Calculate score with combo multiplier
             let baseScore = 0;
             if (w.strong) {
@@ -507,14 +711,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     w.broken = true;
                     w.breakAnim = 8;
                     baseScore = 20;
+                    // Play glass break sound and create shards for strong window
+                    playGlassBreakSound();
+                    createGlassShards(w.x, w.y, w.strong, theme);
                     screenShake();
                 } else {
                     baseScore = 5;
+                    // Play crack sound for first hit on strong window
+                    playCrackSound();
                 }
             } else {
                 w.broken = true;
                 w.breakAnim = 8;
                 baseScore = 10;
+                // Play glass break sound and create shards
+                playGlassBreakSound();
+                createGlassShards(w.x, w.y, w.strong, theme);
             }
             
             // Apply combo multiplier
@@ -640,6 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function gameLoop() {
         updateEnemies();
         checkEnemyCollision();
+        updateGlassShards(); // Update glass shard particles
         windows.forEach(w => { if (w.breakAnim > 0) w.breakAnim--; });
         if (rauf.breakAnim > 0) rauf.breakAnim--;
         if (rauf.breakAnim === 0) rauf.breaking = false;
@@ -655,6 +868,7 @@ document.addEventListener('DOMContentLoaded', () => {
         scoreDisplay.textContent = `Puan: ${score}`;
         rauf = { x: 2, y: 0, breaking: false, breakAnim: 0 };
         combo = 0;
+        glassShards = []; // Clear glass shards from previous level
         
         // Düşman sayısı ve hızı level ile artar, ama hız daha düşük
         enemies = [];
