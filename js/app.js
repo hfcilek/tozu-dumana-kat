@@ -840,9 +840,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             joystickThumb.style.transform = `translate(calc(-50% + ${thumbX}px), calc(-50% + ${thumbY}px))`;
             
-            // Calculate normalized direction (-1 to 1)
-            const normalizedX = distance > 0 ? (deltaX / maxDistance) : 0;
-            const normalizedY = distance > 0 ? (deltaY / maxDistance) : 0;
+            // Calculate normalized direction (-1 to 1), clamped to valid range
+            const normalizedX = Math.max(-1, Math.min(1, deltaX / maxDistance));
+            const normalizedY = Math.max(-1, Math.min(1, deltaY / maxDistance));
             
             const newDirection = getDirection(normalizedX, normalizedY);
             
@@ -857,7 +857,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Start new movement if direction exists
                 if (currentDirection) {
-                    mobileMove(currentDirection); // İlk hareket
+                    mobileMove(currentDirection); // Initial movement
                     joystickInterval = setInterval(() => {
                         if (currentDirection) mobileMove(currentDirection);
                     }, MOBILE_REPEAT_DELAY);
