@@ -763,10 +763,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.addEventListener('keydown', handleKey);
 
-    // Mobil kontroller - geliştirilmiş dokunmatik desteği
-    let mobileRepeatInterval = null;
-    let activeButton = null; // Aktif butonu takip et
-    const MOBILE_REPEAT_DELAY = 150; // ms - ilk basıştan sonra tekrar hızı
+    // Mobil kontroller - Virtual Joystick
+    const MOBILE_REPEAT_DELAY = 120; // ms - hareket tekrar hızı
+    const JOYSTICK_THRESHOLD = 0.3; // Joystick hassasiyeti (0-1 arası)
+    
+    let joystickActive = false;
+    let joystickInterval = null;
+    let currentDirection = null;
     
     function mobileMove(dir) {
         if (!gameActive) return;
@@ -786,59 +789,162 @@ document.addEventListener('DOMContentLoaded', () => {
         smashWindow();
     }
     
-    // Sürekli hareket için yardımcı fonksiyonlar
-    function startMobileMove(dir, btn) {
-        stopMobileMove(); // Önceki interval'ı temizle
-        activeButton = btn;
-        if (btn) btn.classList.add('active');
-        mobileMove(dir); // İlk hareketi hemen yap
-        const direction = dir; // Closure için direction'ı sakla
-        mobileRepeatInterval = setInterval(() => mobileMove(direction), MOBILE_REPEAT_DELAY);
-    }
-    
-    function stopMobileMove() {
-        if (mobileRepeatInterval) {
-            clearInterval(mobileRepeatInterval);
-            mobileRepeatInterval = null;
+    // Virtual Joystick Setup
+    function setupJoystick() {
+        const joystickContainer = document.getElementById('joystick-container');
+        const joystickBase = document.getElementById('joystick-base');
+        const joystickThumb = document.getElementById('joystick-thumb');
+        
+        if (!joystickContainer || !joystickBase || !joystickThumb) return;
+        
+        let baseRect = null;
+        let centerX = 0;
+        let centerY = 0;
+        let maxDistance = 0;
+        
+        function updateBaseRect() {
+            baseRect = joystickBase.getBoundingClientRect();
+            centerX = baseRect.left + baseRect.width / 2;
+            centerY = baseRect.top + baseRect.height / 2;
+            maxDistance = baseRect.width / 2 - 10;
         }
-        // Sadece aktif butondan class'ı kaldır (performans için)
-        if (activeButton) {
-            activeButton.classList.remove('active');
-            activeButton = null;
+        
+        function getDirection(normalizedX, normalizedY) {
+            const absX = Math.abs(normalizedX);
+            const absY = Math.abs(normalizedY);
+            
+            // Check if joystick is moved enough
+            if (absX < JOYSTICK_THRESHOLD && absY < JOYSTICK_THRESHOLD) {
+                return null;
+            }
+            
+            // Determine primary direction
+            if (absX > absY) {
+                return normalizedX > 0 ? 'right' : 'left';
+            } else {
+                return normalizedY > 0 ? 'down' : 'up';
+            }
         }
-    }
-    
-    // Yardımcı fonksiyon: Yön butonlarına event listener ekle
-    function setupDirectionButton(btn, dir) {
-        if (!btn) return;
+        
+        function handleJoystickMove(clientX, clientY) {
+            if (!joystickActive) return;
+            
+            const deltaX = clientX - centerX;
+            const deltaY = clientY - centerY;
+            const distance = Math.min(Math.sqrt(deltaX * deltaX + deltaY * deltaY), maxDistance);
+            const angle = Math.atan2(deltaY, deltaX);
+            
+            // Calculate thumb position
+            const thumbX = Math.cos(angle) * distance;
+            const thumbY = Math.sin(angle) * distance;
+            
+            joystickThumb.style.transform = `translate(calc(-50% + ${thumbX}px), calc(-50% + ${thumbY}px))`;
+            
+            // Calculate normalized direction (-1 to 1)
+            const normalizedX = distance > 0 ? (deltaX / maxDistance) : 0;
+            const normalizedY = distance > 0 ? (deltaY / maxDistance) : 0;
+            
+            const newDirection = getDirection(normalizedX, normalizedY);
+            
+            if (newDirection !== currentDirection) {
+                currentDirection = newDirection;
+                
+                // Clear previous interval
+                if (joystickInterval) {
+                    clearInterval(joystickInterval);
+                    joystickInterval = null;
+                }
+                
+                // Start new movement if direction exists
+                if (currentDirection) {
+                    mobileMove(currentDirection); // İlk hareket
+                    joystickInterval = setInterval(() => {
+                        if (currentDirection) mobileMove(currentDirection);
+                    }, MOBILE_REPEAT_DELAY);
+                }
+            }
+        }
+        
+        function handleJoystickStart(e) {
+            e.preventDefault();
+            updateBaseRect();
+            joystickActive = true;
+            joystickThumb.classList.add('active');
+            
+            const touch = e.touches ? e.touches[0] : e;
+            handleJoystickMove(touch.clientX, touch.clientY);
+        }
+        
+        function handleJoystickEnd(e) {
+            e.preventDefault();
+            joystickActive = false;
+            currentDirection = null;
+            joystickThumb.classList.remove('active');
+            joystickThumb.style.transform = 'translate(-50%, -50%)';
+            
+            if (joystickInterval) {
+                clearInterval(joystickInterval);
+                joystickInterval = null;
+            }
+        }
+        
+        function handleJoystickMoveEvent(e) {
+            e.preventDefault();
+            const touch = e.touches ? e.touches[0] : e;
+            handleJoystickMove(touch.clientX, touch.clientY);
+        }
+        
         // Touch events
-        btn.addEventListener('touchstart', e => { e.preventDefault(); startMobileMove(dir, btn); }, { passive: false });
-        btn.addEventListener('touchend', e => { e.preventDefault(); stopMobileMove(); }, { passive: false });
-        btn.addEventListener('touchcancel', () => { stopMobileMove(); }, { passive: false });
-        // Mouse events
-        btn.addEventListener('mousedown', e => { e.preventDefault(); startMobileMove(dir, btn); });
-        btn.addEventListener('mouseup', () => { stopMobileMove(); });
-        btn.addEventListener('mouseleave', () => { stopMobileMove(); });
+        joystickContainer.addEventListener('touchstart', handleJoystickStart, { passive: false });
+        document.addEventListener('touchmove', (e) => {
+            if (joystickActive) handleJoystickMoveEvent(e);
+        }, { passive: false });
+        document.addEventListener('touchend', (e) => {
+            if (joystickActive) handleJoystickEnd(e);
+        }, { passive: false });
+        document.addEventListener('touchcancel', (e) => {
+            if (joystickActive) handleJoystickEnd(e);
+        }, { passive: false });
+        
+        // Mouse events for desktop testing
+        joystickContainer.addEventListener('mousedown', handleJoystickStart);
+        document.addEventListener('mousemove', (e) => {
+            if (joystickActive) handleJoystickMove(e.clientX, e.clientY);
+        });
+        document.addEventListener('mouseup', handleJoystickEnd);
+        
+        // Update base rect on resize
+        window.addEventListener('resize', updateBaseRect);
     }
     
-    // Yardımcı fonksiyon: Kırma butonuna event listener ekle
+    // Break button setup
     function setupBreakButton(btn) {
         if (!btn) return;
+        
+        function handleBreakStart(e) {
+            e.preventDefault();
+            btn.classList.add('active');
+            mobileBreak();
+        }
+        
+        function handleBreakEnd(e) {
+            e.preventDefault();
+            btn.classList.remove('active');
+        }
+        
         // Touch events
-        btn.addEventListener('touchstart', e => { e.preventDefault(); btn.classList.add('active'); mobileBreak(); }, { passive: false });
-        btn.addEventListener('touchend', e => { e.preventDefault(); btn.classList.remove('active'); }, { passive: false });
-        btn.addEventListener('touchcancel', () => { btn.classList.remove('active'); }, { passive: false });
+        btn.addEventListener('touchstart', handleBreakStart, { passive: false });
+        btn.addEventListener('touchend', handleBreakEnd, { passive: false });
+        btn.addEventListener('touchcancel', handleBreakEnd, { passive: false });
+        
         // Mouse events
-        btn.addEventListener('mousedown', e => { e.preventDefault(); btn.classList.add('active'); mobileBreak(); });
-        btn.addEventListener('mouseup', () => { btn.classList.remove('active'); });
-        btn.addEventListener('mouseleave', () => { btn.classList.remove('active'); });
+        btn.addEventListener('mousedown', handleBreakStart);
+        btn.addEventListener('mouseup', handleBreakEnd);
+        btn.addEventListener('mouseleave', handleBreakEnd);
     }
     
-    // Butonları ayarla
-    setupDirectionButton(document.getElementById('btn-up'), 'up');
-    setupDirectionButton(document.getElementById('btn-down'), 'down');
-    setupDirectionButton(document.getElementById('btn-left'), 'left');
-    setupDirectionButton(document.getElementById('btn-right'), 'right');
+    // Initialize controls
+    setupJoystick();
     setupBreakButton(document.getElementById('btn-break'));
 
     // startGame();
